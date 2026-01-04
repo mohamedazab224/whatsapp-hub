@@ -2,11 +2,11 @@
 
 *Automatically synced with your [whatsapp-hub](https://whatsapp.alazab.com) deployments*
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://alazab.dev)
+[![Deployed on Alazab](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://alazab.dev)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
+This repository will stay in sync with your deployed chats on [az.app](https://alazab.dev).
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
 
 ## Deployment

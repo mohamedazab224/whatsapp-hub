@@ -1,0 +1,39 @@
+# ملفات البيئة
+.env
+.env.local
+!.env.example
+
+# ملفات Azure/AWS/GCP
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+
+# ملفات النظام والIDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# تبعيات Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ملفات التسجيل
+*.log
+
+# ملفات قاعدة البيانات المحلية
+*.db
+*.sqlite
+*.sqlite3
+
+# ملفات التحميل المؤقتة
+uploads/
+tmp/
+temp/

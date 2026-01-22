@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase"
 import { AIService } from "@/lib/ai-service"
-import { sendWhatsAppMessage } from "@/lib/whatsapp"
+import { downloadWhatsAppMedia, sendWhatsAppMessage } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
 
@@ -52,6 +52,51 @@ export async function POST(request: Request) {
       .eq("phone_number_id", whatsappPhoneNumberId)
       .single()
 
+    // 2. Download & store media attachments (if any)
+    let mediaAttachment:
+      | {
+          media_id: string
+          mime_type?: string
+          sha256?: string
+          file_size?: number
+          storage_path?: string
+          public_url?: string
+        }
+      | undefined
+
+    const mediaPayload = msg.type ? msg[msg.type] : undefined
+    const mediaId = mediaPayload?.id
+
+    if (mediaId) {
+      try {
+        const { buffer, info } = await downloadWhatsAppMedia(mediaId)
+        const extension = (info.mime_type || mediaPayload?.mime_type || "application/octet-stream").split("/")[1] || "bin"
+        const storagePath = `${waNumberRecord?.id ?? "unknown"}/${msg.id}/${mediaId}.${extension}`
+
+        const { error: uploadError } = await supabase.storage.from("media").upload(storagePath, Buffer.from(buffer), {
+          contentType: info.mime_type || mediaPayload?.mime_type || "application/octet-stream",
+          upsert: true,
+        })
+
+        if (!uploadError) {
+          const { data: publicUrl } = supabase.storage.from("media").getPublicUrl(storagePath)
+
+          mediaAttachment = {
+            media_id: mediaId,
+            mime_type: info.mime_type || mediaPayload?.mime_type,
+            sha256: info.sha256,
+            file_size: info.file_size,
+            storage_path: storagePath,
+            public_url: publicUrl?.publicUrl,
+          }
+        } else {
+          console.error("[v0] Failed to upload media to storage:", uploadError)
+        }
+      } catch (error) {
+        console.error("[v0] Failed to download WhatsApp media:", error)
+      }
+    }
+
     // 3. Save Incoming Message
     if (contactData) {
       await supabase.from("messages").insert({
@@ -61,7 +106,7 @@ export async function POST(request: Request) {
         type: msg.type,
         direction: "inbound",
         body: msg.text?.body || "",
-        metadata: msg,
+        metadata: { ...msg, media: mediaAttachment },
       })
     }
 

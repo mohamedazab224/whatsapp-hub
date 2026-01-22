@@ -1,6 +1,14 @@
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v21.0"
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
 
+export type WhatsAppMediaInfo = {
+  id: string
+  url: string
+  mime_type?: string
+  sha256?: string
+  file_size?: number
+}
+
 // Add template management functions
 export async function createWhatsAppTemplate(
   businessAccountId: string,
@@ -119,4 +127,42 @@ export async function uploadWhatsAppMedia(phoneNumberId: string, file: File) {
   }
 
   return data
+}
+
+export async function getWhatsAppMediaInfo(mediaId: string): Promise<WhatsAppMediaInfo> {
+  if (!ACCESS_TOKEN) throw new Error("Missing WHATSAPP_ACCESS_TOKEN")
+
+  const url = `https://graph.facebook.com/${API_VERSION}/${mediaId}`
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+  })
+
+  const data = await response.json()
+  if (!response.ok) {
+    console.error("[v0] WhatsApp Media Fetch Error:", data)
+    throw new Error(data.error?.message || "Failed to fetch media info")
+  }
+
+  return data as WhatsAppMediaInfo
+}
+
+export async function downloadWhatsAppMedia(mediaId: string) {
+  if (!ACCESS_TOKEN) throw new Error("Missing WHATSAPP_ACCESS_TOKEN")
+
+  const info = await getWhatsAppMediaInfo(mediaId)
+
+  const response = await fetch(info.url, {
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    console.error("[v0] WhatsApp Media Download Error:", text)
+    throw new Error("Failed to download media")
+  }
+
+  const buffer = await response.arrayBuffer()
+
+  return { buffer, info }
 }

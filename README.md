@@ -29,6 +29,9 @@ Your project is live at:
 3. Configure your WhatsApp Business webhook in Meta:
    - Callback URL: `https://webhook.alazab.com/api/webhook`
    - Verify token: set to the same value as `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
+   - Alternate callback URLs are also supported for providers that expect them:
+     - `https://webhook.alazab.com/webhook`
+     - `https://webhook.alazab.com/webhook/whatsapp`
 4. Create a Supabase storage bucket named `media` to store incoming attachments (images, audio, documents).
 
 ## Build your app

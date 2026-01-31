@@ -94,6 +94,11 @@ export async function getWhatsAppTemplates(businessAccountId: string) {
   })
 
   const data = await response.json()
+  if (!response.ok) {
+    console.error("[app] WhatsApp Template Fetch Error:", data)
+    throw new Error(data.error?.message || "Failed to fetch templates")
+  }
+
   return data.data || []
 }
 

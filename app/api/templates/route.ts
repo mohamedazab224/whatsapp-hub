@@ -63,12 +63,18 @@ export async function POST(request: Request) {
 
   const category = payload.category === "OTP" ? "AUTHENTICATION" : payload.category
 
-  const metaResponse = await createWhatsAppTemplate(phoneNumber.business_account_id, {
-    name: payload.name,
-    category,
-    language: payload.language,
-    components: payload.components || [],
-  })
+  let metaResponse: { id: string; status?: string }
+  try {
+    metaResponse = await createWhatsAppTemplate(phoneNumber.business_account_id, {
+      name: payload.name,
+      category,
+      language: payload.language,
+      components: payload.components || [],
+    })
+  } catch (error) {
+    logger.error("Failed to create template in WhatsApp", { error, phoneNumberId: phoneNumber.id })
+    return new Response("Failed to create template", { status: 502 })
+  }
 
   const previewText = extractPreview(payload.components || [])
   const { error: insertError } = await supabase.from("templates").insert({

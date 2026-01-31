@@ -36,6 +36,16 @@ export async function POST(request: Request) {
     },
   }
 
-  await sendWhatsAppMessage(phoneNumber.phone_number_id, payload.to, message)
-  return NextResponse.json({ status: "ok" })
+  try {
+    await sendWhatsAppMessage(phoneNumber.phone_number_id, payload.to, message)
+    logger.info("Template test message sent", {
+      templateId: template.id,
+      phoneNumberId: payload.phone_number_id,
+      to: payload.to,
+    })
+    return NextResponse.json({ status: "ok" })
+  } catch (error) {
+    logger.error("Failed to send template test message", { error, templateId: template.id })
+    return new Response("Failed to send template message", { status: 502 })
+  }
 }

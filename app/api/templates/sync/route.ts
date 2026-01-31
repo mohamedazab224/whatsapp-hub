@@ -38,7 +38,13 @@ export async function POST(request: Request) {
     return new Response("Missing business account ID", { status: 400 })
   }
 
-  const templates = await getWhatsAppTemplates(phoneNumber.business_account_id)
+  let templates: any[] = []
+  try {
+    templates = await getWhatsAppTemplates(phoneNumber.business_account_id)
+  } catch (error) {
+    logger.error("Failed to fetch templates from WhatsApp", { error, phoneNumberId: phoneNumber.id })
+    return new Response("Failed to fetch templates", { status: 502 })
+  }
 
   for (const template of templates) {
     const previewText = extractPreview(template.components || [])

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { MoreVertical, Plus, RefreshCcw, ExternalLink, Search } from "lucide-react"
+import { MoreVertical, Plus, RefreshCcw, ExternalLink, Search, Send } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { TemplateForm } from "@/components/templates/template-form"
 import { useToast } from "@/hooks/use-toast"
@@ -66,6 +66,7 @@ export function TemplatesClient({ numbers }: { numbers: PhoneNumber[] }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const hasNumbers = numbers.length > 0
 
   const filteredUrl = useMemo(() => {
     if (!selectedNumber?.id) return ""
@@ -80,7 +81,13 @@ export function TemplatesClient({ numbers }: { numbers: PhoneNumber[] }) {
     if (!filteredUrl) return
     setIsLoading(true)
     const response = await fetch(filteredUrl)
-    const data = response.ok ? await response.json() : []
+    if (!response.ok) {
+      setTemplates([])
+      setIsLoading(false)
+      toast({ title: "تعذر التحميل", description: "تعذر تحميل القوالب لهذا الرقم.", variant: "destructive" })
+      return
+    }
+    const data = await response.json()
     setTemplates(Array.isArray(data) ? data : [])
     setIsLoading(false)
   }
@@ -162,9 +169,10 @@ export function TemplatesClient({ numbers }: { numbers: PhoneNumber[] }) {
             <Select
               value={selectedNumber?.id || ""}
               onValueChange={(value) => setSelectedNumber(numbers.find((item) => item.id === value) || null)}
+              disabled={!hasNumbers}
             >
               <SelectTrigger>
-                <SelectValue placeholder="اختر رقم الهاتف" />
+                <SelectValue placeholder={hasNumbers ? "اختر رقم الهاتف" : "أضف رقم واتساب أولًا"} />
               </SelectTrigger>
               <SelectContent>
                 {numbers.map((number) => (
@@ -184,6 +192,7 @@ export function TemplatesClient({ numbers }: { numbers: PhoneNumber[] }) {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="pr-9"
+                disabled={!selectedNumber}
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -212,10 +221,15 @@ export function TemplatesClient({ numbers }: { numbers: PhoneNumber[] }) {
             </Select>
 
             <div className="flex items-center gap-2 ml-auto">
-              <Button className="bg-primary gap-2" onClick={() => setShowCreateDialog(true)}>
+              <Button className="bg-primary gap-2" onClick={() => setShowCreateDialog(true)} disabled={!selectedNumber}>
                 <Plus className="h-4 w-4" /> Create
               </Button>
-              <Button variant="outline" className="gap-2 bg-transparent" onClick={handleSync} disabled={isSyncing}>
+              <Button
+                variant="outline"
+                className="gap-2 bg-transparent"
+                onClick={handleSync}
+                disabled={!selectedNumber || isSyncing}
+              >
                 <RefreshCcw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
                 Sync
               </Button>
@@ -224,24 +238,49 @@ export function TemplatesClient({ numbers }: { numbers: PhoneNumber[] }) {
         </div>
 
         <Card className="overflow-hidden">
-          <div className="grid grid-cols-6 gap-4 px-6 py-3 border-b text-xs font-medium text-muted-foreground">
-            <div className="col-span-2">Name</div>
+          <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_2fr_auto] gap-4 px-6 py-3 border-b text-xs font-medium text-muted-foreground">
+            <div>Name</div>
             <div>Status</div>
             <div>Category</div>
             <div>Language</div>
             <div>Preview</div>
+            <div>Action</div>
           </div>
           <div className="divide-y">
             {isLoading && (
-              <div className="py-10 text-center text-sm text-muted-foreground">جاري التحميل...</div>
+              <div className="space-y-3 px-6 py-6">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col gap-3 md:grid md:grid-cols-[2fr_1fr_1fr_1fr_2fr_auto] md:items-center"
+                  >
+                    <div className="space-y-2">
+                      <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+                      <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+                    </div>
+                    <div className="h-6 w-20 rounded bg-muted animate-pulse" />
+                    <div className="h-4 w-16 rounded bg-muted animate-pulse" />
+                    <div className="h-4 w-10 rounded bg-muted animate-pulse" />
+                    <div className="h-4 w-full max-w-[240px] rounded bg-muted animate-pulse" />
+                    <div className="h-8 w-20 rounded bg-muted animate-pulse" />
+                  </div>
+                ))}
+              </div>
             )}
             {!isLoading && templates.length === 0 && (
-              <div className="py-10 text-center text-sm text-muted-foreground">لا توجد قوالب لهذه الأرقام.</div>
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                {selectedNumber
+                  ? "لا توجد قوالب لهذا الرقم بعد. يمكنك إنشاء قالب جديد أو المزامنة من واتساب."
+                  : "اختر رقم واتساب لعرض القوالب المتاحة."}
+              </div>
             )}
             {!isLoading &&
               templates.map((template) => (
-                <div key={template.id} className="grid grid-cols-6 gap-4 px-6 py-4 text-sm">
-                  <div className="col-span-2 space-y-1">
+                <div
+                  key={template.id}
+                  className="flex flex-col gap-4 px-6 py-4 text-sm md:grid md:grid-cols-[2fr_1fr_1fr_1fr_2fr_auto] md:items-center"
+                >
+                  <div className="space-y-1">
                     <div className="font-semibold">{template.wa_template_name}</div>
                     <div className="text-xs text-muted-foreground">
                       {template.variables_count} params • {template.wa_template_code}
@@ -250,8 +289,11 @@ export function TemplatesClient({ numbers }: { numbers: PhoneNumber[] }) {
                   <div>{statusBadge(template.status)}</div>
                   <div className="text-xs">{template.category}</div>
                   <div className="text-xs">{template.language}</div>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground line-clamp-2">{template.preview_text || "—"}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{template.preview_text || "—"}</p>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleSendTest(template)}>
+                      <Send className="h-4 w-4" />
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">

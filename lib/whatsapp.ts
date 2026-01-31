@@ -1,5 +1,15 @@
-const API_VERSION = process.env.WHATSAPP_API_VERSION || "v21.0"
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
+import { env } from "./env"
+
+const API_VERSION = env.WHATSAPP_API_VERSION
+const ACCESS_TOKEN = env.WHATSAPP_ACCESS_TOKEN
+
+export type WhatsAppMediaInfo = {
+  id: string
+  url: string
+  mime_type?: string
+  sha256?: string
+  file_size?: number
+}
 
 // Add template management functions
 export async function createWhatsAppTemplate(
@@ -11,8 +21,6 @@ export async function createWhatsAppTemplate(
     components: any[]
   },
 ) {
-  if (!ACCESS_TOKEN) throw new Error("Missing WHATSAPP_ACCESS_TOKEN")
-
   const url = `https://graph.facebook.com/${API_VERSION}/${businessAccountId}/message_templates`
 
   const response = await fetch(url, {
@@ -26,7 +34,7 @@ export async function createWhatsAppTemplate(
 
   const data = await response.json()
   if (!response.ok) {
-    console.error("[v0] WhatsApp Template Creation Error:", data)
+    console.error("[app] WhatsApp Template Creation Error:", data)
     throw new Error(data.error?.message || "Failed to create template")
   }
 
@@ -34,8 +42,6 @@ export async function createWhatsAppTemplate(
 }
 
 export async function getWhatsAppTemplateById(businessAccountId: string, templateId: string) {
-  if (!ACCESS_TOKEN) throw new Error("Missing WHATSAPP_ACCESS_TOKEN")
-
   const url = `https://graph.facebook.com/${API_VERSION}/${templateId}`
 
   const response = await fetch(url, {
@@ -44,7 +50,7 @@ export async function getWhatsAppTemplateById(businessAccountId: string, templat
 
   const data = await response.json()
   if (!response.ok) {
-    console.error("[v0] WhatsApp Template Fetch Error:", data)
+    console.error("[app] WhatsApp Template Fetch Error:", data)
     return null
   }
 
@@ -52,8 +58,6 @@ export async function getWhatsAppTemplateById(businessAccountId: string, templat
 }
 
 export async function sendWhatsAppMessage(phoneNumberId: string, to: string, message: any) {
-  if (!ACCESS_TOKEN) throw new Error("Missing WHATSAPP_ACCESS_TOKEN")
-
   const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`
 
   // Format the message body correctly
@@ -75,7 +79,7 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, mes
 
   const data = await response.json()
   if (!response.ok) {
-    console.error("[v0] WhatsApp API Error:", data)
+    console.error("[app] WhatsApp API Error:", data)
     throw new Error(data.error?.message || "Failed to send message")
   }
 
@@ -83,8 +87,6 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, mes
 }
 
 export async function getWhatsAppTemplates(businessAccountId: string) {
-  if (!ACCESS_TOKEN) throw new Error("Missing WHATSAPP_ACCESS_TOKEN")
-
   const url = `https://graph.facebook.com/${API_VERSION}/${businessAccountId}/message_templates`
 
   const response = await fetch(url, {
@@ -92,13 +94,31 @@ export async function getWhatsAppTemplates(businessAccountId: string) {
   })
 
   const data = await response.json()
+  if (!response.ok) {
+    console.error("[app] WhatsApp Template Fetch Error:", data)
+    throw new Error(data.error?.message || "Failed to fetch templates")
+  }
+
   return data.data || []
+}
+
+export async function deleteWhatsAppTemplate(templateId: string) {
+  const url = `https://graph.facebook.com/${API_VERSION}/${templateId}`
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+  })
+
+  const data = await response.json()
+  if (!response.ok) {
+    console.error("[app] WhatsApp Template Delete Error:", data)
+    return false
+  }
+  return true
 }
 
 // Add media upload function
 export async function uploadWhatsAppMedia(phoneNumberId: string, file: File) {
-  if (!ACCESS_TOKEN) throw new Error("Missing WHATSAPP_ACCESS_TOKEN")
-
   const url = `https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/media`
   const formData = new FormData()
   formData.append("file", file)
@@ -114,9 +134,43 @@ export async function uploadWhatsAppMedia(phoneNumberId: string, file: File) {
 
   const data = await response.json()
   if (!response.ok) {
-    console.error("[v0] WhatsApp Media Upload Error:", data)
+    console.error("[app] WhatsApp Media Upload Error:", data)
     throw new Error(data.error?.message || "Failed to upload media")
   }
 
   return data
+}
+
+export async function getWhatsAppMediaInfo(mediaId: string): Promise<WhatsAppMediaInfo> {
+  const url = `https://graph.facebook.com/${API_VERSION}/${mediaId}`
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+  })
+
+  const data = await response.json()
+  if (!response.ok) {
+    console.error("[app] WhatsApp Media Fetch Error:", data)
+    throw new Error(data.error?.message || "Failed to fetch media info")
+  }
+
+  return data as WhatsAppMediaInfo
+}
+
+export async function downloadWhatsAppMedia(mediaId: string) {
+  const info = await getWhatsAppMediaInfo(mediaId)
+
+  const response = await fetch(info.url, {
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    console.error("[app] WhatsApp Media Download Error:", text)
+    throw new Error("Failed to download media")
+  }
+
+  const buffer = await response.arrayBuffer()
+
+  return { buffer, info }
 }

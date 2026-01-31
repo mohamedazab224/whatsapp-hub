@@ -1,19 +1,46 @@
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Button } from "@/components/ui/button"
-import { Eye, Copy, Download, Trash2, Calendar } from "lucide-react"
+import { Calendar } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getSupabaseAdmin } from "@/lib/supabase"
+import { logger } from "@/lib/logger"
 
-const mediaItems = Array(10).fill({
-  id: "6a395b49",
-  phone: "201004006620",
-  file: "image_570df9698289.jpeg",
-  size: "57.0 كيلوبايت",
-  type: "صورة",
-  receivedAt: "1:14:53 ص ٢٠٢٥/١/٤",
-})
+const formatBytes = (bytes?: number | null) => {
+  if (!bytes) return "—"
+  const units = ["ب", "ك.ب", "م.ب", "ج.ب"]
+  let size = bytes
+  let unitIndex = 0
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex += 1
+  }
+  return `${size.toFixed(1)} ${units[unitIndex]}`
+}
 
-export default function MediaPage() {
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "—"
+  return new Intl.DateTimeFormat("ar-EG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+}
+
+const getFileName = (path?: string | null) => {
+  if (!path) return "—"
+  const segments = path.split("/")
+  return segments[segments.length - 1] || "—"
+}
+
+export default async function MediaPage() {
+  const supabase = getSupabaseAdmin()
+  const { data: mediaItems, error } = await supabase
+    .from("media_files")
+    .select("id, media_id, mime_type, file_size, public_url, storage_path, created_at, contact:contact_id(wa_id)")
+    .order("created_at", { ascending: false })
+    .limit(50)
+
+  if (error) {
+    logger.error("Failed to load media files", { error })
+  }
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -64,55 +91,63 @@ export default function MediaPage() {
         </div>
 
         <div className="border rounded-lg bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-right">الرسالة</TableHead>
-                <TableHead className="text-right">الملف</TableHead>
-                <TableHead className="text-right">الحجم</TableHead>
-                <TableHead className="text-right">النوع</TableHead>
-                <TableHead className="text-right">تم الاستلام</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mediaItems.map((item, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <div className="font-medium text-primary">{item.id}</div>
-                    <div className="text-xs text-muted-foreground">{item.phone}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{item.file}</div>
-                    <div className="text-xs text-muted-foreground">صورة/JPEG</div>
-                  </TableCell>
-                  <TableCell className="text-sm">{item.size}</TableCell>
-                  <TableCell>
-                    <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-2 py-0.5 rounded font-medium">
-                      صورة
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{item.receivedAt}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {mediaItems?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">الرسالة</TableHead>
+                  <TableHead className="text-right">الملف</TableHead>
+                  <TableHead className="text-right">الحجم</TableHead>
+                  <TableHead className="text-right">النوع</TableHead>
+                  <TableHead className="text-right">تم الاستلام</TableHead>
+                  <TableHead className="text-left">الإجراءات</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {mediaItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="font-medium text-primary">{item.media_id || item.id}</div>
+                      <div className="text-xs text-muted-foreground">{item.contact?.wa_id || "—"}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{getFileName(item.storage_path)}</div>
+                      <div className="text-xs text-muted-foreground">{item.mime_type || "—"}</div>
+                    </TableCell>
+                    <TableCell className="text-sm">{formatBytes(item.file_size)}</TableCell>
+                    <TableCell>
+                      <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-2 py-0.5 rounded font-medium">
+                        {item.mime_type?.split("/")[0] || "ملف"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDateTime(item.created_at)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <a href={item.public_url || "#"} target="_blank" rel="noreferrer">
+                            <Eye className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <a href={item.public_url || "#"} download>
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-12 text-center text-sm text-muted-foreground">لا توجد وسائط متاحة حالياً.</div>
+          )}
         </div>
       </main>
     </div>

@@ -33,7 +33,7 @@ export class AIService {
 
       return text
     } catch (error) {
-      console.error("[v0] AI Processing Error:", error)
+      console.error("[app] AI Processing Error:", error)
       return "عذراً، أواجه مشكلة تقنية حالياً. سأرد عليك في أقرب وقت ممكن."
     }
   }

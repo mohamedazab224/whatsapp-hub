@@ -24,6 +24,22 @@ CREATE TABLE IF NOT EXISTS message_templates (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create table for WhatsApp API Templates (sync + UI management)
+CREATE TABLE IF NOT EXISTS templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    wa_template_name TEXT NOT NULL,
+    wa_template_code TEXT NOT NULL,
+    phone_number_id UUID REFERENCES whatsapp_numbers(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    category TEXT NOT NULL,
+    language TEXT NOT NULL,
+    preview_text TEXT,
+    variables_count INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS templates_unique_idx ON templates (wa_template_code, phone_number_id);
+
 -- Create table for Contacts
 CREATE TABLE IF NOT EXISTS contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -52,11 +68,13 @@ CREATE TABLE IF NOT EXISTS messages (
 -- Enable RLS
 ALTER TABLE whatsapp_numbers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 -- Create Policies (Public access for now as requested for rapid implementation, should be refined for production)
 CREATE POLICY "Allow all access" ON whatsapp_numbers FOR ALL USING (true);
 CREATE POLICY "Allow all access" ON message_templates FOR ALL USING (true);
+CREATE POLICY "Allow all access" ON templates FOR ALL USING (true);
 CREATE POLICY "Allow all access" ON contacts FOR ALL USING (true);
 CREATE POLICY "Allow all access" ON messages FOR ALL USING (true);

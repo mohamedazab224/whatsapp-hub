@@ -42,7 +42,7 @@ export async function syncTemplates(phoneNumberId: string) {
       { onConflict: "template_id" },
     )
 
-    if (error) console.error("[v0] Error syncing template:", error)
+    if (error) console.error("[app] Error syncing template:", error)
   }
 
   revalidatePath("/templates")
@@ -111,7 +111,7 @@ export async function getTemplatesFromDB(phoneNumberId: string) {
     .order("created_at", { ascending: false })
 
   if (error) {
-    console.error("[v0] Error fetching templates:", error)
+    console.error("[app] Error fetching templates:", error)
     return []
   }
 

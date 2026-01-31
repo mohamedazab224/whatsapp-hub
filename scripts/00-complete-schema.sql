@@ -46,6 +46,22 @@ CREATE TABLE IF NOT EXISTS message_templates (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 3.1 TEMPLATES TABLE - Synced WhatsApp API templates for UI management
+CREATE TABLE IF NOT EXISTS templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    wa_template_name TEXT NOT NULL,
+    wa_template_code TEXT NOT NULL,
+    phone_number_id UUID REFERENCES whatsapp_numbers(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    category TEXT NOT NULL,
+    language TEXT NOT NULL,
+    preview_text TEXT,
+    variables_count INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS templates_unique_idx ON templates (wa_template_code, phone_number_id);
+
 -- 4. CONTACTS TABLE - Customer contacts
 CREATE TABLE IF NOT EXISTS contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -214,6 +230,7 @@ CREATE INDEX idx_activity_logs_project ON activity_logs(project_id);
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_numbers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE media_storage ENABLE ROW LEVEL SECURITY;
@@ -228,6 +245,7 @@ ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public access on projects" ON projects FOR ALL USING (true);
 CREATE POLICY "Public access on whatsapp_numbers" ON whatsapp_numbers FOR ALL USING (true);
 CREATE POLICY "Public access on message_templates" ON message_templates FOR ALL USING (true);
+CREATE POLICY "Public access on templates" ON templates FOR ALL USING (true);
 CREATE POLICY "Public access on contacts" ON contacts FOR ALL USING (true);
 CREATE POLICY "Public access on messages" ON messages FOR ALL USING (true);
 CREATE POLICY "Public access on media_storage" ON media_storage FOR ALL USING (true);

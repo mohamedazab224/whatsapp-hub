@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
 import { X, Plus } from "lucide-react"
-import { createAndSubmitTemplate } from "@/app/actions/whatsapp"
 import { useToast } from "@/hooks/use-toast"
 
 interface TemplateVariable {
@@ -16,7 +15,15 @@ interface TemplateVariable {
   example: string
 }
 
-export function TemplateForm({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
+export function TemplateForm({
+  phoneNumberId,
+  onSuccess,
+  onCancel,
+}: {
+  phoneNumberId: string
+  onSuccess?: () => void
+  onCancel?: () => void
+}) {
   const [name, setName] = useState("")
   const [category, setCategory] = useState("UTILITY")
   const [language, setLanguage] = useState("ar")
@@ -45,6 +52,15 @@ export function TemplateForm({ onSuccess, onCancel }: { onSuccess?: () => void; 
   }
 
   const handleSubmit = async () => {
+    if (!phoneNumberId) {
+      toast({
+        variant: "destructive",
+        title: "رقم غير محدد",
+        description: "يرجى اختيار رقم واتساب قبل إنشاء القالب.",
+      })
+      return
+    }
+
     if (!name || !bodyText) {
       toast({
         variant: "destructive",
@@ -72,12 +88,21 @@ export function TemplateForm({ onSuccess, onCancel }: { onSuccess?: () => void; 
         }
       }
 
-      await createAndSubmitTemplate(process.env.NEXT_PUBLIC_WHATSAPP_PHONE_NUMBER_ID || "", {
-        name: name.toLowerCase().replace(/\s+/g, "_"),
-        category,
-        language,
-        components,
+      const response = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone_number_id: phoneNumberId,
+          name: name.toLowerCase().replace(/\s+/g, "_"),
+          category,
+          language,
+          components,
+          body_text: bodyText,
+        }),
       })
+      if (!response.ok) {
+        throw new Error("فشل إنشاء القالب")
+      }
 
       toast({
         title: "تم الإرسال بنجاح",
@@ -115,6 +140,7 @@ export function TemplateForm({ onSuccess, onCancel }: { onSuccess?: () => void; 
               <SelectItem value="UTILITY">خدمي (UTILITY)</SelectItem>
               <SelectItem value="MARKETING">تسويقي (MARKETING)</SelectItem>
               <SelectItem value="AUTHENTICATION">مصادقة (AUTHENTICATION)</SelectItem>
+              <SelectItem value="OTP">OTP</SelectItem>
             </SelectContent>
           </Select>
         </div>

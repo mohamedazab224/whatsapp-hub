@@ -2,8 +2,15 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Webhook, Plus, ArrowUpRight, MoreVertical, CheckCircle2, AlertCircle } from "lucide-react"
+import { getSupabaseAdmin } from "@/lib/supabase"
 
-export default function WebhooksPage() {
+export default async function WebhooksPage() {
+  const supabase = getSupabaseAdmin()
+  const { data: endpoints } = await supabase
+    .from("webhook_endpoints")
+    .select("id, url, events, is_active")
+    .order("created_at", { ascending: false })
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -46,16 +53,11 @@ export default function WebhooksPage() {
             <CardTitle className="text-lg">نقاط النهاية (Endpoints)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {[
-              {
-                url: "https://api.uberfix.com/v1/whatsapp/webhook",
-                events: ["message_received", "media_received"],
-                status: "نشط",
-              },
-              { url: "https://logs.alazab.com/webhook", events: ["delivery_status"], status: "نشط" },
-            ].map((wh, i) => (
+            {(endpoints || []).map((wh) => {
+              const events = Array.isArray(wh.events) ? wh.events : wh.events ? [wh.events] : []
+              return (
               <div
-                key={i}
+                key={wh.id}
                 className="flex items-center justify-between p-4 border rounded-lg bg-card group hover:border-primary transition-colors"
               >
                 <div className="flex items-center gap-4">
@@ -65,7 +67,7 @@ export default function WebhooksPage() {
                   <div>
                     <h4 className="font-mono text-xs font-bold">{wh.url}</h4>
                     <div className="flex items-center gap-2 mt-1.5">
-                      {wh.events.map((event, j) => (
+                      {events.map((event, j) => (
                         <span
                           key={j}
                           className="text-[9px] bg-muted px-1.5 py-0.5 rounded border text-muted-foreground font-mono"
@@ -78,8 +80,8 @@ export default function WebhooksPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-medium">{wh.status}</span>
+                    <div className={`h-2 w-2 rounded-full ${wh.is_active ? "bg-emerald-500" : "bg-muted"}`} />
+                    <span className="text-xs font-medium">{wh.is_active ? "نشط" : "متوقف"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -91,7 +93,11 @@ export default function WebhooksPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
+            {!endpoints?.length && (
+              <div className="text-sm text-muted-foreground text-center py-6">لا توجد نقاط نهاية مسجلة.</div>
+            )}
           </CardContent>
         </Card>
       </main>

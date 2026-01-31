@@ -2,35 +2,15 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Zap, Plus, Play, MoreVertical } from "lucide-react"
+import { getSupabaseAdmin } from "@/lib/supabase"
 
-const workflowData = [
-  {
-    id: 1,
-    name: "إرسال فاتورة تلقائياً",
-    trigger: "عند استلام رسالة تحتوى على 'فاتورة'",
-    status: "نشط",
-    lastRun: "منذ ١٠ دقائق",
-    runs: 128,
-  },
-  {
-    id: 2,
-    name: "تذكير موعد الصيانة",
-    trigger: "قبل ٢٤ ساعة من موعد الحجز",
-    status: "نشط",
-    lastRun: "منذ ساعة",
-    runs: 45,
-  },
-  {
-    id: 3,
-    name: "ترحيب بالعملاء الجدد",
-    trigger: "عند أول رسالة من رقم جديد",
-    status: "متوقف",
-    lastRun: "أمس",
-    runs: 312,
-  },
-]
+export default async function WorkflowsPage() {
+  const supabase = getSupabaseAdmin()
+  const { data: workflowData } = await supabase
+    .from("workflows")
+    .select("id, name, trigger, is_active, last_run_at, run_count")
+    .order("created_at", { ascending: false })
 
-export default function WorkflowsPage() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
@@ -40,8 +20,10 @@ export default function WorkflowsPage() {
             <h1 className="text-2xl font-bold">سير العمل والأتمتة</h1>
             <p className="text-sm text-muted-foreground mt-1">قم ببناء مسارات عمل ذكية وأتمتة الردود والإشعارات.</p>
           </div>
-          <Button className="bg-primary gap-2">
+          <Button className="bg-primary gap-2" asChild>
+            <a href="/workflows/new">
             <Plus className="h-4 w-4" /> إنشاء سير عمل
+            </a>
           </Button>
         </div>
 
@@ -81,19 +63,19 @@ export default function WorkflowsPage() {
 
         <div className="space-y-4">
           <h2 className="font-bold text-lg mb-4">المسارات الحالية</h2>
-          {workflowData.map((wf) => (
+          {(workflowData || []).map((wf) => (
             <Card key={wf.id} className="group hover:border-primary transition-colors cursor-pointer">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div
-                    className={`h-10 w-10 rounded-lg flex items-center justify-center ${wf.status === "نشط" ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"}`}
+                    className={`h-10 w-10 rounded-lg flex items-center justify-center ${wf.is_active ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"}`}
                   >
                     <Zap className="h-5 w-5" />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm">{wf.name}</h3>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Play className="h-3 w-3" /> {wf.trigger}
+                      <Play className="h-3 w-3" /> {wf.trigger || "—"}
                     </p>
                   </div>
                 </div>
@@ -101,17 +83,17 @@ export default function WorkflowsPage() {
                 <div className="flex items-center gap-8">
                   <div className="text-right">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">مرات التشغيل</p>
-                    <p className="text-sm font-bold">{wf.runs}</p>
+                    <p className="text-sm font-bold">{wf.run_count ?? "—"}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">آخر تشغيل</p>
-                    <p className="text-xs">{wf.lastRun}</p>
+                    <p className="text-xs">{wf.last_run_at ? new Date(wf.last_run_at).toLocaleString("ar-EG") : "—"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`h-2 w-2 rounded-full ${wf.status === "نشط" ? "bg-emerald-500 animate-pulse" : "bg-muted"}`}
+                      className={`h-2 w-2 rounded-full ${wf.is_active ? "bg-emerald-500 animate-pulse" : "bg-muted"}`}
                     />
-                    <span className="text-xs font-medium">{wf.status}</span>
+                    <span className="text-xs font-medium">{wf.is_active ? "نشط" : "متوقف"}</span>
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreVertical className="h-4 w-4" />
@@ -120,6 +102,9 @@ export default function WorkflowsPage() {
               </CardContent>
             </Card>
           ))}
+          {!workflowData?.length && (
+            <div className="text-sm text-muted-foreground text-center py-6">لا توجد مسارات حالياً.</div>
+          )}
         </div>
       </main>
     </div>

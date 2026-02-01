@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSupabaseAdmin } from "@/lib/supabase"
 import { logger } from "@/lib/logger"
 
+export const dynamic = "force-dynamic"
+
 const formatBytes = (bytes?: number | null) => {
   if (!bytes) return "—"
   const units = ["ب", "ك.ب", "م.ب", "ج.ب"]

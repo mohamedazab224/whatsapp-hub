@@ -1,9 +1,9 @@
 import { Sidebar } from "@/components/dashboard/sidebar"
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { getSupabaseServer } from "@/lib/supabase"
 import { TemplatesClient } from "./templates-client"
 
 export default async function TemplatesPage() {
-  const supabase = getSupabaseAdmin()
+  const supabase = getSupabaseServer()
   const { data: numbers } = await supabase
     .from("whatsapp_numbers")
     .select("id, name, phone_number, phone_number_id")

@@ -1,8 +1,8 @@
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { getSupabaseServer } from "@/lib/supabase"
 import { SidebarClient } from "./sidebar-client"
 
 export async function Sidebar() {
-  const supabase = getSupabaseAdmin()
+  const supabase = getSupabaseServer()
   const { data: projects } = await supabase.from("projects").select("id, name").order("created_at", { ascending: true })
   const { data: numbers } = await supabase
     .from("whatsapp_numbers")

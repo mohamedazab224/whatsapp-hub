@@ -1,9 +1,9 @@
 import { Sidebar } from "@/components/dashboard/sidebar"
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { getSupabaseServer } from "@/lib/supabase"
 import { AISettingsClient } from "./settings-client"
 
 export default async function AISettingsPage() {
-  const supabase = getSupabaseAdmin()
+  const supabase = getSupabaseServer()
   const { data: projects } = await supabase.from("projects").select("id, name").order("created_at", { ascending: true })
   const project = projects?.[0]
 

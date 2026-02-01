@@ -2,10 +2,10 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Webhook, Plus, ArrowUpRight, MoreVertical, CheckCircle2, AlertCircle } from "lucide-react"
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { getSupabaseServer } from "@/lib/supabase"
 
 export default async function WebhooksPage() {
-  const supabase = getSupabaseAdmin()
+  const supabase = getSupabaseServer()
   const { data: endpoints } = await supabase
     .from("webhook_endpoints")
     .select("id, url, events, is_active")

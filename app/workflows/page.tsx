@@ -2,10 +2,10 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Zap, Plus, Play, MoreVertical } from "lucide-react"
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { getSupabaseServer } from "@/lib/supabase"
 
 export default async function WorkflowsPage() {
-  const supabase = getSupabaseAdmin()
+  const supabase = getSupabaseServer()
   const { data: workflowData } = await supabase
     .from("workflows")
     .select("id, name, trigger, is_active, last_run_at, run_count")

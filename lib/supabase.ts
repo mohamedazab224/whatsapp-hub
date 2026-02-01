@@ -1,22 +1,8 @@
-import { createClient } from "@supabase/supabase-js"
-import { getPublicEnv } from "./env.public"
-import { getSupabaseAdminEnv } from "./env.server"
+import { createSupabaseBrowserClient } from "@/lib/supabase/client"
+import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server"
 
-let cachedSupabaseClient: ReturnType<typeof createClient> | null = null
-let cachedSupabaseAdminClient: ReturnType<typeof createClient> | null = null
+export const getSupabaseClient = () => createSupabaseBrowserClient()
 
-// Singleton pattern for Supabase client
-export const getSupabaseClient = () => {
-  if (cachedSupabaseClient) return cachedSupabaseClient
-  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = getPublicEnv()
-  cachedSupabaseClient = createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
-  return cachedSupabaseClient
-}
+export const getSupabaseServer = () => createSupabaseServerClient()
 
-// Server-side client (requires service role for admin tasks)
-export const getSupabaseAdmin = () => {
-  if (cachedSupabaseAdminClient) return cachedSupabaseAdminClient
-  const { NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = getSupabaseAdminEnv()
-  cachedSupabaseAdminClient = createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  return cachedSupabaseAdminClient
-}
+export const getSupabaseAdmin = () => createSupabaseAdminClient()

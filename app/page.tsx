@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Smartphone, Zap, Calendar, ChevronLeft, Code2, Webhook, ExternalLink } from "lucide-react"
 import { DailyMessagesChart } from "@/components/dashboard/charts"
-import { getSupabaseClient } from "@/lib/supabase"
+import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 
 export default function Dashboard() {
@@ -13,7 +13,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const supabase = getSupabaseClient()
+      const supabase = createSupabaseBrowserClient()
       const { count: msgCount } = await supabase.from("messages").select("*", { count: "exact", head: true })
       const { count: contactCount } = await supabase.from("contacts").select("*", { count: "exact", head: true })
       setStats({ messages: msgCount || 0, contacts: contactCount || 0 })

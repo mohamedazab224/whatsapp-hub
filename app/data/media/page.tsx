@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { getSupabaseServer } from "@/lib/supabase"
 import { logger } from "@/lib/logger"
 
 export const dynamic = "force-dynamic"
@@ -32,7 +32,7 @@ const getFileName = (path?: string | null) => {
 }
 
 export default async function MediaPage() {
-  const supabase = getSupabaseAdmin()
+  const supabase = getSupabaseServer()
   const { data: mediaItems, error } = await supabase
     .from("media_files")
     .select("id, media_id, mime_type, file_size, public_url, storage_path, created_at, contact:contact_id(wa_id)")

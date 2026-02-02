@@ -353,6 +353,8 @@ export interface Database {
       whatsapp_numbers: {
         Row: {
           id: string
+          name: string
+          phone_number: string
           phone_number_id: string
           business_account_id: string
           project_id: string
@@ -363,6 +365,8 @@ export interface Database {
         }
         Insert: {
           id?: string
+          name: string
+          phone_number: string
           phone_number_id: string
           business_account_id: string
           project_id: string
@@ -370,6 +374,8 @@ export interface Database {
         }
         Update: {
           id?: string
+          name?: string
+          phone_number?: string
           phone_number_id?: string
           business_account_id?: string
           project_id?: string

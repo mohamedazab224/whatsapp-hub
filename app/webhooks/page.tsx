@@ -5,9 +5,9 @@ import { Webhook, Plus, ArrowUpRight, MoreVertical, CheckCircle2, AlertCircle } 
 import { getSupabaseServer } from "@/lib/supabase"
 
 export default async function WebhooksPage() {
-  const supabase = getSupabaseServer()
+  const supabase = await getSupabaseServer()
   const { data: endpoints } = await supabase
-    .from("webhook_endpoints")
+    .from("webhooks")
     .select("id, url, events, is_active")
     .order("created_at", { ascending: false })
 

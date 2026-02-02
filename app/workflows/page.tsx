@@ -5,7 +5,7 @@ import { Zap, Plus, Play, MoreVertical } from "lucide-react"
 import { getSupabaseServer } from "@/lib/supabase"
 
 export default async function WorkflowsPage() {
-  const supabase = getSupabaseServer()
+  const supabase = await getSupabaseServer()
   const { data: workflowData } = await supabase
     .from("workflows")
     .select("id, name, trigger, is_active, last_run_at, run_count")

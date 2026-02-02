@@ -16,14 +16,13 @@ export async function syncTemplates(phoneNumberId: string) {
 
   const supabase = getSupabaseAdmin()
   
-  // <CHANGE> Get UUID for phone number
   const { data: phoneNumber } = await supabase
     .from("whatsapp_numbers")
     .select("id")
     .eq("phone_number_id", phoneNumberId)
     .single()
 
-  if (!phoneNumber) throw new Error("Phone number not found in database")
+  if (!phoneNumber?.id) throw new Error("Phone number not found in database")
 
   const templates = await getWhatsAppTemplates(BUSINESS_ACCOUNT_ID)
 
@@ -63,14 +62,13 @@ export async function createAndSubmitTemplate(
 
   const supabase = getSupabaseAdmin()
 
-  // Get UUID for phone number
   const { data: phoneNumber } = await supabase
     .from("whatsapp_numbers")
     .select("id")
     .eq("phone_number_id", phoneNumberId)
     .single()
 
-  if (!phoneNumber) throw new Error("Phone number not found in database")
+  if (!phoneNumber?.id) throw new Error("Phone number not found in database")
 
   // Create template on Meta
   const metaResponse = await createWhatsAppTemplate(BUSINESS_ACCOUNT_ID, templateData)
@@ -102,7 +100,7 @@ export async function getTemplatesFromDB(phoneNumberId: string) {
     .eq("phone_number_id", phoneNumberId)
     .single()
 
-  if (!phoneNumber) return []
+  if (!phoneNumber?.id) return []
 
   const { data: templates, error } = await supabase
     .from("message_templates")

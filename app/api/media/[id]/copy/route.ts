@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     .eq("id", params.id)
     .maybeSingle()
 
-  if (error || !media?.storage_path) {
+  if (error || !media || !media.storage_path) {
     logger.error("Media not found for copy", { error, mediaId: params.id })
     return new Response("Not Found", { status: 404 })
   }

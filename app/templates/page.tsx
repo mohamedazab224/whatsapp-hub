@@ -3,7 +3,7 @@ import { getSupabaseServer } from "@/lib/supabase"
 import { TemplatesClient } from "./templates-client"
 
 export default async function TemplatesPage() {
-  const supabase = getSupabaseServer()
+  const supabase = await getSupabaseServer()
   const { data: numbers } = await supabase
     .from("whatsapp_numbers")
     .select("id, name, phone_number, phone_number_id")

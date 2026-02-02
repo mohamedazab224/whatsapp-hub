@@ -11,7 +11,7 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     .eq("id", params.id)
     .maybeSingle()
 
-  if (error || !template) {
+  if (error || !template || !template.wa_template_code) {
     logger.error("Template not found", { error, templateId: params.id })
     return new Response("Not Found", { status: 404 })
   }

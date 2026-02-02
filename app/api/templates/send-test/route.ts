@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     .eq("id", payload.template_id)
     .maybeSingle()
 
-  if (error || !template) {
+  if (error || !template || !template.wa_template_name || !template.language) {
     logger.error("Template not found for test send", { error, templateId: payload.template_id })
     return new Response("Not Found", { status: 404 })
   }
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     .eq("id", payload.phone_number_id)
     .maybeSingle()
 
-  if (phoneError || !phoneNumber?.phone_number_id) {
+  if (phoneError || !phoneNumber || !phoneNumber.phone_number_id) {
     logger.error("Phone number not found for test send", { error: phoneError, phoneNumberId: payload.phone_number_id })
     return new Response("Missing phone number", { status: 400 })
   }

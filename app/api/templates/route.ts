@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     .eq("id", payload.phone_number_id)
     .maybeSingle()
 
-  if (error || !phoneNumber?.business_account_id) {
+  if (error || !phoneNumber || !phoneNumber.business_account_id) {
     logger.error("Missing business account ID for template creation", { error, phoneNumberId: payload.phone_number_id })
     return new Response("Missing business account ID", { status: 400 })
   }

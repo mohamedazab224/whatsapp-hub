@@ -3,7 +3,7 @@ import { getSupabaseServer } from "@/lib/supabase"
 import { IntegrationsSettingsClient } from "./settings-client"
 
 export default async function IntegrationsSettingsPage() {
-  const supabase = getSupabaseServer()
+  const supabase = await getSupabaseServer()
   const { data: projects } = await supabase.from("projects").select("id, name").order("created_at", { ascending: true })
   const project = projects?.[0]
 

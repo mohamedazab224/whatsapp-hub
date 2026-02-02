@@ -3,6 +3,6 @@ import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/sup
 
 export const getSupabaseClient = () => createSupabaseBrowserClient()
 
-export const getSupabaseServer = () => createSupabaseServerClient()
+export const getSupabaseServer = async () => await createSupabaseServerClient()
 
 export const getSupabaseAdmin = () => createSupabaseAdminClient()

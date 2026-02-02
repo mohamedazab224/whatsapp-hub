@@ -1,8 +1,9 @@
 "use client"
 
 import { createBrowserClient } from "@supabase/ssr"
+import type { Database } from "@/lib/database.types"
 
-let cachedBrowserClient: ReturnType<typeof createBrowserClient> | null = null
+let cachedBrowserClient: ReturnType<typeof createBrowserClient<Database>> | null = null
 
 export const createSupabaseBrowserClient = () => {
   if (cachedBrowserClient) return cachedBrowserClient
@@ -13,6 +14,6 @@ export const createSupabaseBrowserClient = () => {
     throw new Error("Missing Supabase public environment variables.")
   }
 
-  cachedBrowserClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  cachedBrowserClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
   return cachedBrowserClient
 }

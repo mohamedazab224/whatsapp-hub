@@ -14,23 +14,23 @@ const sessionEnvSchema = z.object({
 const webhookEnvSchema = z.object({
   WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().min(1),
   WHATSAPP_APP_SECRET: z.string().min(1),
-  WEBHOOK_RATE_LIMIT_MAX: z.string().optional().default("120"),
-  WEBHOOK_RATE_LIMIT_WINDOW_SEC: z.string().optional().default("60"),
+  WEBHOOK_RATE_LIMIT_MAX: z.string().default("120"),
+  WEBHOOK_RATE_LIMIT_WINDOW_SEC: z.string().default("60"),
 })
 
 const whatsappApiEnvSchema = z.object({
   WHATSAPP_ACCESS_TOKEN: z.string().min(1),
-  WHATSAPP_API_VERSION: z.string().optional().default("v21.0"),
+  WHATSAPP_API_VERSION: z.string().default("v21.0"),
 })
 
 const queueEnvSchema = z.object({
   QUEUE_SECRET: z.string().min(1),
-  QUEUE_RATE_LIMIT_MAX: z.string().optional().default("30"),
-  QUEUE_RATE_LIMIT_WINDOW_SEC: z.string().optional().default("60"),
+  QUEUE_RATE_LIMIT_MAX: z.string().default("30"),
+  QUEUE_RATE_LIMIT_WINDOW_SEC: z.string().default("60"),
 })
 
 const logEnvSchema = z.object({
-  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional().default("info"),
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 })
 
 const supabaseAdminEnvSchema = z.object({
@@ -83,25 +83,43 @@ export const getSessionEnv = (): SessionEnv => {
 
 export const getWebhookEnv = (): WebhookEnv => {
   if (cachedWebhookEnv) return cachedWebhookEnv
-  cachedWebhookEnv = parseEnv(webhookEnvSchema, "webhook")
+  const parsed = parseEnv(webhookEnvSchema, "webhook")
+  cachedWebhookEnv = {
+    ...parsed,
+    WEBHOOK_RATE_LIMIT_MAX: parsed.WEBHOOK_RATE_LIMIT_MAX || "120",
+    WEBHOOK_RATE_LIMIT_WINDOW_SEC: parsed.WEBHOOK_RATE_LIMIT_WINDOW_SEC || "60"
+  }
   return cachedWebhookEnv
 }
 
 export const getWhatsappApiEnv = (): WhatsappApiEnv => {
   if (cachedWhatsappApiEnv) return cachedWhatsappApiEnv
-  cachedWhatsappApiEnv = parseEnv(whatsappApiEnvSchema, "whatsapp-api")
+  const parsed = parseEnv(whatsappApiEnvSchema, "whatsapp-api")
+  cachedWhatsappApiEnv = {
+    ...parsed,
+    WHATSAPP_API_VERSION: parsed.WHATSAPP_API_VERSION || "v21.0"
+  }
   return cachedWhatsappApiEnv
 }
 
 export const getQueueEnv = (): QueueEnv => {
   if (cachedQueueEnv) return cachedQueueEnv
-  cachedQueueEnv = parseEnv(queueEnvSchema, "queue")
+  const parsed = parseEnv(queueEnvSchema, "queue")
+  cachedQueueEnv = {
+    ...parsed,
+    QUEUE_RATE_LIMIT_MAX: parsed.QUEUE_RATE_LIMIT_MAX || "30",
+    QUEUE_RATE_LIMIT_WINDOW_SEC: parsed.QUEUE_RATE_LIMIT_WINDOW_SEC || "60"
+  }
   return cachedQueueEnv
 }
 
 export const getLoggerEnv = (): LogEnv => {
   if (cachedLogEnv) return cachedLogEnv
-  cachedLogEnv = parseEnv(logEnvSchema, "logger")
+  const parsed = parseEnv(logEnvSchema, "logger")
+  cachedLogEnv = {
+    ...parsed,
+    LOG_LEVEL: parsed.LOG_LEVEL || "info"
+  }
   return cachedLogEnv
 }
 

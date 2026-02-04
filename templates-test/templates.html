@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة القوالب - نظام اختبار القوالب</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/templates.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-envelope"></i>
+                <h1>إدارة القوالب</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="templates.html" class="active"><i class="fas fa-file-alt"></i> القوالب</a>
+                <a href="test.html"><i class="fas fa-vial"></i> الاختبارات</a>
+                <a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير</a>
+                <a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">مدير النظام</span>
+                <i class="fas fa-user-circle user-icon"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- محتوى الصفحة -->
+    <div class="container">
+        <!-- رأس الصفحة -->
+        <div class="page-header">
+            <h2><i class="fas fa-file-alt"></i> إدارة القوالب</h2>
+            <div class="header-actions">
+                <button class="btn btn-success" id="addTemplateBtn">
+                    <i class="fas fa-plus"></i> إضافة قالب جديد
+                </button>
+                <button class="btn btn-secondary" id="importTemplatesBtn">
+                    <i class="fas fa-file-import"></i> استيراد
+                </button>
+                <button class="btn btn-info" id="exportTemplatesBtn">
+                    <i class="fas fa-file-export"></i> تصدير
+                </button>
+            </div>
+        </div>
+
+        <!-- فلتر القوالب -->
+        <div class="filters-card">
+            <div class="filters-header">
+                <h4><i class="fas fa-filter"></i> فلتر القوالب</h4>
+                <button class="btn btn-sm btn-link" id="clearFilters">مسح الفلتر</button>
+            </div>
+            <div class="filters-body">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>الحالة:</label>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="active">نشط</option>
+                            <option value="pending">في الانتظار</option>
+                            <option value="inactive">معطل</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>الفئة:</label>
+                        <select id="categoryFilter" class="filter-select">
+                            <option value="">جميع الفئات</option>
+                            <option value="marketing">تسويق</option>
+                            <option value="utility">أداة مساعدة</option>
+                            <option value="notification">إشعارات</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>اللغة:</label>
+                        <select id="languageFilter" class="filter-select">
+                            <option value="">جميع اللغات</option>
+                            <option value="ar">العربية</option>
+                            <option value="en">الإنجليزية</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>البحث:</label>
+                        <input type="text" id="searchFilter" class="filter-input" placeholder="ابحث في القوالب...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول القوالب -->
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="templates-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll">
+                            </th>
+                            <th>اسم القالب</th>
+                            <th>المعرف</th>
+                            <th>الفئة</th>
+                            <th>اللغة</th>
+                            <th>الحالة</th>
+                            <th>آخر تعديل</th>
+                            <th>عدد الاختبارات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="templatesTableBody">
+                        <!-- سيتم تعبئة البيانات عبر JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- تذييل الجدول -->
+            <div class="table-footer">
+                <div class="table-info">
+                    عرض <span id="currentCount">0</span> من <span id="totalCount">0</span> قالب
+                </div>
+                <div class="pagination" id="pagination">
+                    <!-- سيتم إضافة أرقام الصفحات ديناميكياً -->
+                </div>
+            </div>
+        </div>
+
+        <!-- إحصائيات القوالب -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-box-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-box-content">
+                    <h3>21</h3>
+                    <p>القوالب النشطة</p>
+                </div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-box-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-box-content">
+                    <h3>4</h3>
+                    <p>قيد المراجعة</p>
+                </div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-box-icon">
+                    <i class="fas fa-language"></i>
+                </div>
+                <div class="stat-box-content">
+                    <h3>3</h3>
+                    <p>لغات مدعومة</p>
+                </div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-box-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-box-content">
+                    <h3>94.5%</h3>
+                    <p>معدل نجاح الاختبار</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال إضافة قالب -->
+    <div id="addTemplateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> إضافة قالب جديد</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="templateForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="templateName">اسم القالب *</label>
+                            <input type="text" id="templateName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="templateId">معرف القالب *</label>
+                            <input type="text" id="templateId" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="templateCategory">الفئة *</label>
+                        <select id="templateCategory" required>
+                            <option value="">اختر الفئة</option>
+                            <option value="marketing">تسويق</option>
+                            <option value="utility">أداة مساعدة</option>
+                            <option value="notification">إشعارات</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="templateLanguage">اللغة *</label>
+                            <select id="templateLanguage" required>
+                                <option value="ar">العربية</option>
+                                <option value="en">الإنجليزية</option>
+                                <option value="fr">الفرنسية</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="templateStatus">الحالة *</label>
+                            <select id="templateStatus" required>
+                                <option value="active">نشط</option>
+                                <option value="pending">في الانتظار</option>
+                                <option value="inactive">معطل</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="templateContent">محتوى القالب *</label>
+                        <textarea id="templateContent" rows="5" required></textarea>
+                        <div class="form-help">
+                            <i class="fas fa-info-circle"></i> استخدم {{1}}، {{2}}، إلخ للمتغيرات
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>المتغيرات:</label>
+                        <div id="variablesList"></div>
+                        <button type="button" class="btn btn-sm btn-outline" id="addVariableBtn">
+                            <i class="fas fa-plus"></i> إضافة متغير
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">إلغاء</button>
+                <button class="btn btn-success" id="saveTemplateBtn">حفظ القالب</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال معاينة القالب -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content preview-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> معاينة القالب</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="template-preview">
+                    <div class="preview-header">
+                        <h4 id="previewTitle"></h4>
+                        <div class="preview-meta">
+                            <span class="badge" id="previewCategory"></span>
+                            <span class="badge" id="previewLanguage"></span>
+                            <span class="badge" id="previewStatus"></span>
+                        </div>
+                    </div>
+                    <div class="preview-content" id="previewContent">
+                        <!-- محتوى القالب -->
+                    </div>
+                    <div class="preview-variables">
+                        <h5>اختبار المتغيرات:</h5>
+                        <div id="variableInputs"></div>
+                        <button class="btn btn-primary" id="testPreviewBtn">اختبار المعاينة</button>
+                    </div>
+                    <div class="preview-result" id="previewResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/templates.js"></script>
+</body>
+</html>

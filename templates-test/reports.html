@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقارير - نظام اختبار القوالب</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/reports.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-chart-bar"></i>
+                <h1>التقارير والإحصائيات</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="templates.html"><i class="fas fa-file-alt"></i> القوالب</a>
+                <a href="test.html"><i class="fas fa-vial"></i> الاختبارات</a>
+                <a href="reports.html" class="active"><i class="fas fa-chart-bar"></i> التقارير</a>
+                <a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">مدير النظام</span>
+                <i class="fas fa-user-circle user-icon"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- محتوى الصفحة -->
+    <div class="container">
+        <!-- رأس الصفحة -->
+        <div class="page-header">
+            <h2><i class="fas fa-chart-bar"></i> التقارير والإحصائيات</h2>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="generateReportBtn">
+                    <i class="fas fa-file-pdf"></i> إنشاء تقرير PDF
+                </button>
+                <button class="btn btn-success" id="exportDataBtn">
+                    <i class="fas fa-file-excel"></i> تصدير بيانات Excel
+                </button>
+                <div class="date-range">
+                    <input type="date" id="startDate">
+                    <span>إلى</span>
+                    <input type="date" id="endDate">
+                    <button class="btn btn-sm btn-info" id="applyDateRangeBtn">تطبيق</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقات النظرة العامة -->
+        <div class="overview-cards">
+            <div class="overview-card">
+                <div class="overview-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="overview-content">
+                    <h3>94.5%</h3>
+                    <p>معدل نجاح الاختبارات</p>
+                    <span class="trend up"><i class="fas fa-arrow-up"></i> 2.3%</span>
+                </div>
+            </div>
+
+            <div class="overview-card">
+                <div class="overview-icon warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="overview-content">
+                    <h3>21</h3>
+                    <p>قوالب نشطة</p>
+                    <span class="trend up"><i class="fas fa-arrow-up"></i> 5%</span>
+                </div>
+            </div>
+
+            <div class="overview-card">
+                <div class="overview-icon info">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="overview-content">
+                    <h3>1,245</h3>
+                    <p>اختبار تم إجراؤه</p>
+                    <span class="trend up"><i class="fas fa-arrow-up"></i> 12%</span>
+                </div>
+            </div>
+
+            <div class="overview-card">
+                <div class="overview-icon danger">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="overview-content">
+                    <h3>4.2%</h3>
+                    <p>معدل الفشل</p>
+                    <span class="trend down"><i class="fas fa-arrow-down"></i> 1.8%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- المخططات -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h4><i class="fas fa-chart-line"></i> أداء القوالب حسب الفئة</h4>
+                    <select id="performanceChartType" class="chart-select">
+                        <option value="success">معدل النجاح</option>
+                        <option value="usage">معدل الاستخدام</option>
+                        <option value="failure">معدل الفشل</option>
+                    </select>
+                </div>
+                <div class="chart-body">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h4><i class="fas fa-chart-pie"></i> توزيع القوالب</h4>
+                    <select id="distributionFilter" class="chart-select">
+                        <option value="category">حسب الفئة</option>
+                        <option value="status">حسب الحالة</option>
+                        <option value="language">حسب اللغة</option>
+                    </select>
+                </div>
+                <div class="chart-body">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- تقارير مفصلة -->
+        <div class="detailed-reports">
+            <div class="reports-tabs">
+                <button class="report-tab active" data-report="template-reports">تقارير القوالب</button>
+                <button class="report-tab" data-report="test-reports">تقارير الاختبارات</button>
+                <button class="report-tab" data-report="performance-reports">تقارير الأداء</button>
+                <button class="report-tab" data-report="error-reports">تقارير الأخطاء</button>
+            </div>
+
+            <div class="reports-content">
+                <!-- تقارير القوالب -->
+                <div id="template-reports" class="report-content active">
+                    <div class="report-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>اسم القالب</th>
+                                    <th>الفئة</th>
+                                    <th>عدد الاختبارات</th>
+                                    <th>النجاح</th>
+                                    <th>الفشل</th>
+                                    <th>معدل النجاح</th>
+                                    <th>آخر اختبار</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="templateReportsBody">
+                                <!-- سيتم تعبئة البيانات ديناميكياً -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- تقارير الاختبارات -->
+                <div id="test-reports" class="report-content">
+                    <div class="test-reports-grid">
+                        <div class="test-summary">
+                            <h5><i class="fas fa-list-alt"></i> ملخص الاختبارات</h5>
+                            <div class="summary-stats">
+                                <div class="summary-stat">
+                                    <span class="stat-label">إجمالي الاختبارات:</span>
+                                    <span class="stat-value">1,245</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-label">ناجحة:</span>
+                                    <span class="stat-value success">1,176</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-label">فاشلة:</span>
+                                    <span class="stat-value danger">52</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-label">في الانتظار:</span>
+                                    <span class="stat-value warning">17</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="test-timeline">
+                            <h5><i class="fas fa-history"></i> الجدول الزمني</h5>
+                            <div class="timeline" id="testTimeline">
+                                <!-- سيتم إضافة الجدول الزمني ديناميكياً -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تقارير الأداء -->
+                <div id="performance-reports" class="report-content">
+                    <div class="performance-metrics">
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <h6>وقت الاستجابة</h6>
+                                <span class="metric-trend up">+5%</span>
+                            </div>
+                            <div class="metric-value">128ms</div>
+                            <div class="metric-chart">
+                                <canvas id="responseTimeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <h6>استخدام الذاكرة</h6>
+                                <span class="metric-trend down">-12%</span>
+                            </div>
+                            <div class="metric-value">45MB</div>
+                            <div class="metric-chart">
+                                <canvas id="memoryUsageChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <h6>سرعة المعالجة</h6>
+                                <span class="metric-trend up">+8%</span>
+                            </div>
+                            <div class="metric-value">2.4k/ثانية</div>
+                            <div class="metric-chart">
+                                <canvas id="processingSpeedChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تقارير الأخطاء -->
+                <div id="error-reports" class="report-content">
+                    <div class="error-analysis">
+                        <div class="error-summary">
+                            <h5><i class="fas fa-exclamation-triangle"></i> تحليل الأخطاء</h5>
+                            <div class="error-types">
+                                <div class="error-type">
+                                    <span class="error-name">متغيرات مفقودة</span>
+                                    <span class="error-count">24</span>
+                                </div>
+                                <div class="error-type">
+                                    <span class="error-name">تنسيق خاطئ</span>
+                                    <span class="error-count">18</span>
+                                </div>
+                                <div class="error-type">
+                                    <span class="error-name">مشاكل في الترميز</span>
+                                    <span class="error-count">7</span>
+                                </div>
+                                <div class="error-type">
+                                    <span class="error-name">أخطاء في المحتوى</span>
+                                    <span class="error-count">3</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="error-details">
+                            <h5>أحدث الأخطاء</h5>
+                            <div class="error-list" id="errorList">
+                                <!-- سيتم إضافة الأخطاء ديناميكياً -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تصدير التقارير -->
+        <div class="export-section">
+            <div class="export-options">
+                <h4><i class="fas fa-download"></i> تصدير التقارير</h4>
+                <div class="export-formats">
+                    <button class="export-format-btn" data-format="pdf">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>PDF</span>
+                    </button>
+                    <button class="export-format-btn" data-format="excel">
+                        <i class="fas fa-file-excel"></i>
+                        <span>Excel</span>
+                    </button>
+                    <button class="export-format-btn" data-format="csv">
+                        <i class="fas fa-file-csv"></i>
+                        <span>CSV</span>
+                    </button>
+                    <button class="export-format-btn" data-format="json">
+                        <i class="fas fa-file-code"></i>
+                        <span>JSON</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="custom-report">
+                <h4><i class="fas fa-cogs"></i> تقرير مخصص</h4>
+                <div class="custom-options">
+                    <div class="option-group">
+                        <label>نوع التقرير:</label>
+                        <select id="customReportType">
+                            <option value="summary">ملخص</option>
+                            <option value="detailed">مفصل</option>
+                            <option value="comparison">مقارنة</option>
+                            <option value="trend">اتجاهات</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label>الفترة:</label>
+                        <select id="customReportPeriod">
+                            <option value="today">اليوم</option>
+                            <option value="week">هذا الأسبوع</option>
+                            <option value="month">هذا الشهر</option>
+                            <option value="quarter">هذا الربع</option>
+                            <option value="year">هذه السنة</option>
+                            <option value="custom">مخصص</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="generateCustomReportBtn">
+                        <i class="fas fa-magic"></i> إنشاء تقرير مخصص
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال معاينة التقرير -->
+    <div id="reportPreviewModal" class="modal">
+        <div class="modal-content report-preview-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> معاينة التقرير</h3>
+                <div class="modal-actions">
+                    <button class="btn btn-sm btn-outline" id="printReportBtn">
+                        <i class="fas fa-print"></i> طباعة
+                    </button>
+                    <button class="btn btn-sm btn-primary" id="downloadReportBtn">
+                        <i class="fas fa-download"></i> تحميل
+                    </button>
+                    <button class="modal-close">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="report-preview" id="reportPreviewContent">
+                    <!-- سيتم تحميل محتوى التقرير هنا -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/chart.min.js"></script>
+    <script src="js/reports.js"></script>
+</body>
+</html>

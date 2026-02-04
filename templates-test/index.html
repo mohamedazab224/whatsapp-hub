@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام اختبار قوالب الرسائل</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-envelope"></i>
+                <h1>نظام اختبار القوالب</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html" class="active"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="templates.html"><i class="fas fa-file-alt"></i> القوالب</a>
+                <a href="test.html"><i class="fas fa-vial"></i> الاختبارات</a>
+                <a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير</a>
+                <a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">مدير النظام</span>
+                <i class="fas fa-user-circle user-icon"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- لوحة التحكم -->
+    <div class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <h2><i class="fas fa-tachometer-alt"></i> لوحة التحكم</h2>
+                <div class="date-time" id="currentDateTime"></div>
+            </div>
+
+            <!-- بطاقات الإحصائيات -->
+            <div class="stats-cards">
+                <div class="stat-card stat-card-success">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>21</h3>
+                        <p>القوالب النشطة</p>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>5%</span>
+                    </div>
+                </div>
+
+                <div class="stat-card stat-card-warning">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>4</h3>
+                        <p>في انتظار المراجعة</p>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-minus"></i>
+                        <span>0%</span>
+                    </div>
+                </div>
+
+                <div class="stat-card stat-card-danger">
+                    <div class="stat-icon">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>0</h3>
+                        <p>القوالب المحظورة</p>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <div class="stat-card stat-card-info">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>94.5%</h3>
+                        <p>معدل النجاح</p>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>2.3%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- القسم الرئيسي -->
+            <div class="main-content">
+                <div class="content-row">
+                    <!-- القوالب الأخيرة -->
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-history"></i> آخر القوالب المعدلة</h3>
+                            <a href="templates.html" class="view-all">عرض الكل</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="template-list">
+                                <div class="template-item">
+                                    <div class="template-icon">
+                                        <i class="fas fa-file-invoice"></i>
+                                    </div>
+                                    <div class="template-info">
+                                        <h4>invoice_available</h4>
+                                        <p>فاتورة متاحة</p>
+                                        <span class="badge badge-success">نشط</span>
+                                        <span class="template-date">31/12/2025</span>
+                                    </div>
+                                </div>
+
+                                <div class="template-item">
+                                    <div class="template-icon">
+                                        <i class="fas fa-user-cog"></i>
+                                    </div>
+                                    <div class="template-info">
+                                        <h4>technician_arrival</h4>
+                                        <p>وصول الفني</p>
+                                        <span class="badge badge-success">نشط</span>
+                                        <span class="template-date">31/12/2025</span>
+                                    </div>
+                                </div>
+
+                                <div class="template-item">
+                                    <div class="template-icon">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="template-info">
+                                        <h4>appointment_scheduling</h4>
+                                        <p>جدولة موعد</p>
+                                        <span class="badge badge-success">نشط</span>
+                                        <span class="template-date">31/12/2025</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- اختبار سريع -->
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-bolt"></i> اختبار سريع</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="quick-test">
+                                <div class="form-group">
+                                    <label for="quickTemplate">اختر قالب:</label>
+                                    <select id="quickTemplate" class="form-control">
+                                        <option value="">-- اختر قالب --</option>
+                                        <option value="invoice_available">فاتورة متاحة</option>
+                                        <option value="technician_arrival">وصول الفني</option>
+                                        <option value="appointment_scheduling">جدولة موعد</option>
+                                    </select>
+                                </div>
+                                
+                                <div id="quickTestParams" class="test-params">
+                                    <!-- سيتم إضافة الحقول ديناميكياً -->
+                                </div>
+
+                                <button id="runQuickTest" class="btn btn-primary">
+                                    <i class="fas fa-play"></i> تشغيل الاختبار
+                                </button>
+
+                                <div id="quickTestResult" class="test-result" style="display: none;">
+                                    <h4>النتيجة:</h4>
+                                    <div class="result-content"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- مخطط النشاط -->
+                <div class="content-card full-width">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-area"></i> نشاط الاختبارات</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2024 نظام اختبار القوالب. جميع الحقوق محفوظة.</p>
+            <div class="footer-links">
+                <a href="#"><i class="fab fa-github"></i> GitHub</a>
+                <a href="#"><i class="fas fa-question-circle"></i> المساعدة</a>
+                <a href="#"><i class="fas fa-file-contract"></i> الشروط</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/chart.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

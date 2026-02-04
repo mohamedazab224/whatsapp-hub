@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار القوالب - نظام اختبار القوالب</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/test.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-vial"></i>
+                <h1>اختبار القوالب</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="templates.html"><i class="fas fa-file-alt"></i> القوالب</a>
+                <a href="test.html" class="active"><i class="fas fa-vial"></i> الاختبارات</a>
+                <a href="reports.html"><i class="fas fa-chart-bar"></i> التقارير</a>
+                <a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a>
+            </div>
+            <div class="nav-user">
+                <span class="user-name">مدير النظام</span>
+                <i class="fas fa-user-circle user-icon"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- محتوى الصفحة -->
+    <div class="container">
+        <!-- رأس الصفحة -->
+        <div class="page-header">
+            <h2><i class="fas fa-vial"></i> اختبار القوالب</h2>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="runAllTestsBtn">
+                    <i class="fas fa-play-circle"></i> تشغيل جميع الاختبارات
+                </button>
+                <button class="btn btn-success" id="createTestBtn">
+                    <i class="fas fa-plus"></i> إنشاء اختبار جديد
+                </button>
+                <button class="btn btn-info" id="scheduleTestBtn">
+                    <i class="fas fa-clock"></i> جدولة اختبار
+                </button>
+            </div>
+        </div>
+
+        <!-- لوحة اختيار القوالب -->
+        <div class="template-selector">
+            <h4><i class="fas fa-filter"></i> اختر القوالب للاختبار</h4>
+            <div class="template-grid" id="templateGrid">
+                <!-- سيتم تعبئة القوالب ديناميكياً -->
+            </div>
+        </div>
+
+        <!-- أداة الاختبار -->
+        <div class="test-tool">
+            <div class="test-tool-header">
+                <h4><i class="fas fa-sliders-h"></i> أداة الاختبار</h4>
+                <div class="test-tool-actions">
+                    <button class="btn btn-sm btn-outline" id="clearTestBtn">
+                        <i class="fas fa-trash-alt"></i> مسح
+                    </button>
+                    <button class="btn btn-sm btn-primary" id="saveTestBtn">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                </div>
+            </div>
+
+            <div class="test-tool-body">
+                <!-- محرر الاختبار -->
+                <div class="test-editor">
+                    <div class="editor-tabs">
+                        <button class="tab-btn active" data-tab="template-tab">القوالب</button>
+                        <button class="tab-btn" data-tab="variables-tab">المتغيرات</button>
+                        <button class="tab-btn" data-tab="settings-tab">الإعدادات</button>
+                    </div>
+
+                    <div class="editor-content">
+                        <!-- تبويب القوالب -->
+                        <div id="template-tab" class="tab-content active">
+                            <div class="selected-templates" id="selectedTemplates">
+                                <p class="empty-message">لم يتم اختيار أي قوالب بعد</p>
+                            </div>
+                        </div>
+
+                        <!-- تبويب المتغيرات -->
+                        <div id="variables-tab" class="tab-content">
+                            <div class="variables-editor">
+                                <div class="variables-list" id="variablesEditor">
+                                    <!-- سيتم إضافة المتغيرات ديناميكياً -->
+                                </div>
+                                <button class="btn btn-sm btn-outline" id="addTestVariableBtn">
+                                    <i class="fas fa-plus"></i> إضافة متغيرات اختبار
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- تبويب الإعدادات -->
+                        <div id="settings-tab" class="tab-content">
+                            <div class="test-settings">
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="autoSaveTest"> حفظ تلقائي
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="sendRealMessages"> إرسال رسائل حقيقية
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="validateVariables" checked> التحقق من المتغيرات
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>عدد مرات التكرار:</label>
+                                    <input type="number" id="testIterations" value="1" min="1" max="100">
+                                </div>
+                                <div class="form-group">
+                                    <label>فاصل زمني (ثانية):</label>
+                                    <input type="number" id="testInterval" value="0" min="0" max="60">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- لوحة النتائج -->
+                <div class="test-results-panel">
+                    <div class="results-header">
+                        <h5><i class="fas fa-chart-bar"></i> النتائج</h5>
+                        <div class="results-stats">
+                            <span class="stat-success">0 نجاح</span>
+                            <span class="stat-failure">0 فشل</span>
+                            <span class="stat-pending">0 في الانتظار</span>
+                        </div>
+                    </div>
+                    <div class="results-body" id="testResultsBody">
+                        <!-- سيتم عرض النتائج هنا -->
+                    </div>
+                    <div class="results-footer">
+                        <button class="btn btn-sm btn-primary" id="runTestBtn" disabled>
+                            <i class="fas fa-play"></i> تشغيل الاختبار
+                        </button>
+                        <button class="btn btn-sm btn-outline" id="exportResultsBtn">
+                            <i class="fas fa-download"></i> تصدير النتائج
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- اختبارات مجدولة -->
+        <div class="scheduled-tests">
+            <h4><i class="fas fa-clock"></i> الاختبارات المجدولة</h4>
+            <div class="scheduled-list" id="scheduledTestsList">
+                <div class="empty-state">
+                    <i class="fas fa-clock fa-3x"></i>
+                    <p>لا توجد اختبارات مجدولة</p>
+                    <button class="btn btn-outline" id="scheduleFirstTestBtn">جدولة أول اختبار</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- تاريخ الاختبارات -->
+        <div class="test-history">
+            <h4><i class="fas fa-history"></i> تاريخ الاختبارات</h4>
+            <div class="history-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>اسم الاختبار</th>
+                            <th>عدد القوالب</th>
+                            <th>النتيجة</th>
+                            <th>المدة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="testHistoryBody">
+                        <!-- سيتم تعبئة التاريخ ديناميكياً -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال إنشاء اختبار -->
+    <div id="createTestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> إنشاء اختبار جديد</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="testForm">
+                    <div class="form-group">
+                        <label for="testName">اسم الاختبار *</label>
+                        <input type="text" id="testName" required placeholder="مثال: اختبار القوالب التسويقية">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testDescription">وصف الاختبار</label>
+                        <textarea id="testDescription" rows="3" placeholder="وصف موجز للاختبار"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="testType">نوع الاختبار *</label>
+                            <select id="testType" required>
+                                <option value="single">مفرد</option>
+                                <option value="batch">دفعة</option>
+                                <option value="scheduled">مجدول</option>
+                                <option value="stress">اختبار الضغط</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="testPriority">الأولوية</label>
+                            <select id="testPriority">
+                                <option value="low">منخفضة</option>
+                                <option value="medium" selected>متوسطة</option>
+                                <option value="high">عالية</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>القوالب المختارة:</label>
+                        <div class="selected-templates-list" id="modalSelectedTemplates"></div>
+                        <button type="button" class="btn btn-sm btn-outline" id="selectTemplatesBtn">
+                            <i class="fas fa-list"></i> اختر القوالب
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">إلغاء</button>
+                <button class="btn btn-primary" id="createTestConfirmBtn">إنشاء الاختبار</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال جدولة اختبار -->
+    <div id="scheduleTestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-clock"></i> جدولة اختبار</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleForm">
+                    <div class="form-group">
+                        <label for="scheduleName">اسم الجدولة *</label>
+                        <input type="text" id="scheduleName" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="scheduleDate">التاريخ *</label>
+                            <input type="date" id="scheduleDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="scheduleTime">الوقت *</label>
+                            <input type="time" id="scheduleTime" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="repeatSchedule">التكرار</label>
+                        <select id="repeatSchedule">
+                            <option value="none">لا يوجد</option>
+                            <option value="daily">يومياً</option>
+                            <option value="weekly">أسبوعياً</option>
+                            <option value="monthly">شهرياً</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="sendNotification"> إرسال إشعار عند الانتهاء
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">إلغاء</button>
+                <button class="btn btn-success" id="scheduleConfirmBtn">جدولة</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/test.js"></script>
+</body>
+</html>

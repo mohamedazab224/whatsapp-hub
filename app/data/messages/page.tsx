@@ -4,33 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Search, Download, Filter } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Suspense } from "react"
-
-const messages = [
-  {
-    id: "msg_12345",
-    from: "201004006620",
-    to: "201000000000",
-    content: "مرحباً بك في العزب هاب!",
-    status: "تم التسليم",
-    time: "10:30 ص",
-  },
-  {
-    id: "msg_12346",
-    from: "201000000000",
-    to: "201004006620",
-    content: "شكراً لك، كيف يمكنني البدء؟",
-    status: "تمت القراءة",
-    time: "10:32 ص",
-  },
-  {
-    id: "msg_12347",
-    from: "201004006620",
-    to: "201000000000",
-    content: "يمكنك البدء بإنشاء أول قالب رسالة.",
-    status: "تم الإرسال",
-    time: "10:35 ص",
-  },
-]
+import { getSupabaseServer } from "@/lib/supabase"
 
 export default function MessagesPage() {
   return (
@@ -45,7 +19,14 @@ export default function MessagesPage() {
   )
 }
 
-function MessagesContent() {
+async function MessagesContent() {
+  const supabase = getSupabaseServer()
+  const { data: messages } = await supabase
+    .from("messages")
+    .select("id, whatsapp_message_id, contact_id, whatsapp_number_id, direction, body, created_at")
+    .order("created_at", { ascending: false })
+    .limit(50)
+
   return (
     <>
       <div className="flex items-center justify-between mb-8">
@@ -73,32 +54,41 @@ function MessagesContent() {
           <TableHeader>
             <TableRow>
               <TableHead className="text-right">المعرف</TableHead>
-              <TableHead className="text-right">من</TableHead>
-              <TableHead className="text-right">إلى</TableHead>
+              <TableHead className="text-right">جهة الاتصال</TableHead>
+              <TableHead className="text-right">رقم واتساب</TableHead>
               <TableHead className="text-right">المحتوى</TableHead>
-              <TableHead className="text-right">الحالة</TableHead>
+              <TableHead className="text-right">الاتجاه</TableHead>
               <TableHead className="text-right">الوقت</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {messages.map((msg, i) => (
-              <TableRow key={i}>
-                <TableCell className="font-mono text-[10px] text-primary">{msg.id}</TableCell>
+            {(messages || []).map((msg) => (
+              <TableRow key={msg.id}>
+                <TableCell className="font-mono text-[10px] text-primary">{msg.whatsapp_message_id || msg.id}</TableCell>
                 <TableCell dir="ltr" className="text-right text-xs">
-                  {msg.from}
+                  {msg.contact_id || "—"}
                 </TableCell>
                 <TableCell dir="ltr" className="text-right text-xs">
-                  {msg.to}
+                  {msg.whatsapp_number_id || "—"}
                 </TableCell>
-                <TableCell className="text-sm max-w-xs truncate">{msg.content}</TableCell>
+                <TableCell className="text-sm max-w-xs truncate">{msg.body || "—"}</TableCell>
                 <TableCell>
-                  <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-emerald-500/10 text-emerald-500">
-                    {msg.status}
+                  <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-muted text-muted-foreground">
+                    {msg.direction || "—"}
                   </span>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">{msg.time}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {msg.created_at ? new Date(msg.created_at).toLocaleString("ar-EG") : "—"}
+                </TableCell>
               </TableRow>
             ))}
+            {!messages?.length && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
+                  لا توجد رسائل بعد.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

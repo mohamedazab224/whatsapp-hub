@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getQueueEnv } from "@/lib/env.server"
 import { logger } from "@/lib/logger"
 import { checkRateLimit, getClientIp, logRateLimitRejection } from "@/lib/rate-limit"
-import { processPendingAiJobs } from "@/lib/message-queue"
+import { processPendingMessageJobs } from "@/lib/message-queue"
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID()
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     return new Response("Unauthorized", { status: 401 })
   }
 
-  const { processed, failed } = await processPendingAiJobs()
+  const { processed, failed } = await processPendingMessageJobs()
   logger.info("Queue processing completed", { requestId, processed, failed })
 
   return NextResponse.json({ status: "ok", processed, failed })

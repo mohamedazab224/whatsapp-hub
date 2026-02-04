@@ -38,19 +38,13 @@ This repository contains the WhatsApp webhook platform for self-hosted deploymen
      - `https://webhook.alazab.com/webhook/whatsapp`
 4. Create a Supabase storage bucket named `media` to store incoming attachments (images, audio, documents).
 
-## Authentication (Basic Auth)
+## Authentication (Supabase Session Auth)
 
-This deployment uses HTTP Basic Authentication for initial login, backed by the `users` table.
-Allowed roles are `admin`, `system`, `project_admin`, and `viewer`. The authentication guard protects dashboard routes while allowing WhatsApp webhook callbacks to reach `/api/webhook`.
+This deployment uses Supabase Auth sessions (cookie-backed) for login and route protection.
+The middleware checks for an authenticated Supabase user and redirects unauthenticated users to `/login`.
+Webhook callbacks to `/api/webhook` are allowed to bypass authentication.
 
-Passwords should be stored in the `users` table as SHA-256 hashes using `AUTH_PASSWORD_SALT` and sessions are issued via `SESSION_SECRET`.
-This deployment uses HTTP Basic Authentication with users defined in `BASIC_AUTH_USERS`. Each entry uses the format:
-
-```
-email:password:role
-```
-
-Allowed roles are `admin` and `system`. The authentication guard protects dashboard routes while allowing WhatsApp webhook callbacks to reach `/api/webhook`.
+Ensure Supabase Auth is configured for your deployment (providers, redirect URLs, and users).
 
 ## Webhook Security
 

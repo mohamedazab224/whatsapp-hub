@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { updateSupabaseSession } from "@/lib/supabase/middleware"
 
 const PUBLIC_PATHS = ["/login", "/auth/callback"]
-const PUBLIC_PREFIXES = ["/api/webhook"]
+const PUBLIC_PREFIXES = ["/api/webhook", "/api/health"]
 
 const isPublicPath = (pathname: string) =>
   PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))

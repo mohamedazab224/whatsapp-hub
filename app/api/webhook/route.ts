@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await processWebhookEvent({ requestId, rawBody, body, signatureHeader })
+    await processWebhookEvent({ requestId, body })
   } catch (error) {
     logger.error("Webhook processing failed", { requestId, error })
   }

@@ -67,6 +67,7 @@ export async function processWebhookEvent({ requestId, body }: WebhookContext) {
         type: msg.type,
         direction: "inbound",
         body: msg.text?.body || "",
+        processing_stage: "RECEIVED",
         metadata: msg,
       })
       .select()

@@ -40,7 +40,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  validateStartupEnv()
+  try {
+    validateStartupEnv()
+  } catch (error) {
+    // Silently handle env validation errors during initialization
+    console.warn("[Layout] Environment setup:", error instanceof Error ? error.message : String(error))
+  }
   return (
     <html lang="ar" dir="rtl">
       <body className={`${_geist.variable} font-sans antialiased`}>

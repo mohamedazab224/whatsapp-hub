@@ -2,29 +2,29 @@ import { z } from "zod"
 import { getPublicEnv } from "./env.public"
 
 const authEnvSchema = z.object({
-  BASIC_AUTH_USERS: z.string().min(1),
-  AUTH_PASSWORD_SALT: z.string().min(1),
-  SESSION_SECRET: z.string().min(1),
+  BASIC_AUTH_USERS: z.string().min(1).optional(),
+  AUTH_PASSWORD_SALT: z.string().min(1).optional(),
+  SESSION_SECRET: z.string().min(1).optional(),
 })
 
 const sessionEnvSchema = z.object({
-  SESSION_SECRET: z.string().min(1),
+  SESSION_SECRET: z.string().min(1).optional(),
 })
 
 const webhookEnvSchema = z.object({
-  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().min(1),
-  WHATSAPP_APP_SECRET: z.string().min(1),
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().min(1).optional(),
+  WHATSAPP_APP_SECRET: z.string().min(1).optional(),
   WEBHOOK_RATE_LIMIT_MAX: z.string().default("120"),
   WEBHOOK_RATE_LIMIT_WINDOW_SEC: z.string().default("60"),
 })
 
 const whatsappApiEnvSchema = z.object({
-  WHATSAPP_ACCESS_TOKEN: z.string().min(1),
+  WHATSAPP_ACCESS_TOKEN: z.string().min(1).optional(),
   WHATSAPP_API_VERSION: z.string().default("v21.0"),
 })
 
 const queueEnvSchema = z.object({
-  QUEUE_SECRET: z.string().min(1),
+  QUEUE_SECRET: z.string().min(1).optional(),
   QUEUE_RATE_LIMIT_MAX: z.string().default("30"),
   QUEUE_RATE_LIMIT_WINDOW_SEC: z.string().default("60"),
 })
@@ -34,7 +34,7 @@ const logEnvSchema = z.object({
 })
 
 const supabaseAdminEnvSchema = z.object({
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
 })
 
 type AuthEnv = z.infer<typeof authEnvSchema>

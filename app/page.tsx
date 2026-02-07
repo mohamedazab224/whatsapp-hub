@@ -5,10 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Smartphone, Zap, Calendar, ChevronLeft, Code2, Webhook, ExternalLink } from "lucide-react"
 import { DailyMessagesChart } from "@/components/dashboard/charts"
-import { useDashboardStats } from "@/hooks/use-data"
+import { useDashboardStats, useMessages } from "@/hooks/use-data"
+import { formatDistanceToNow } from "date-fns"
+import { ar } from "date-fns/locale"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 
 export default function Dashboard() {
   const { stats, isLoading, error } = useDashboardStats()
+  const { messages: recentMessages } = useMessages({ limit: 10 })
 
   return (
     <div className="flex h-screen bg-background text-right" dir="rtl">
@@ -84,15 +97,80 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6 mb-6">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg">الرسائل اليومية</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">الرسائل اليومية</CardTitle>
+                <span className="text-xs text-muted-foreground">إحصائيات سريعة</span>
+              </div>
             </CardHeader>
             <CardContent>
               <DailyMessagesChart />
             </CardContent>
           </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">الرسائل الحديثة</CardTitle>
+                  <Link href="/inbox">
+                    <Button variant="ghost" size="sm" className="text-primary">
+                      عرض صندوق الوارد
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">الزمن</TableHead>
+                      <TableHead className="text-right">المحتوى</TableHead>
+                      <TableHead className="text-right">الإعراض</TableHead>
+                      <TableHead className="text-right">الحالة</TableHead>
+                      <TableHead className="text-right">الاتصال</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentMessages.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          لا توجد رسائل حديثة
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      recentMessages.map((message: any) => (
+                        <TableRow key={message.id}>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {message.timestamp ? formatDistanceToNow(new Date(message.timestamp), {
+                              locale: ar,
+                              addSuffix: true,
+                            }) : '-'}
+                          </TableCell>
+                          <TableCell className="max-w-xs">
+                            <p className="text-sm truncate">{message.body || '-'}</p>
+                          </TableCell>
+                          <TableCell>—</TableCell>
+                          <TableCell>
+                            <Badge variant={message.direction === 'inbound' ? 'secondary' : 'default'}>
+                              {message.direction === 'inbound' ? 'الوارد' : 'الخارج'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {message.contacts?.name || message.contacts?.wa_id || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="space-y-6">
             <Card>

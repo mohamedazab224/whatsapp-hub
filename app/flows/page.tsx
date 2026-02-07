@@ -4,17 +4,25 @@ import { RefreshCcw, Plus, Send } from "lucide-react"
 
 export default function FlowsPage() {
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background" dir="rtl">
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-8">
         <div className="flex gap-8">
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">تدفقات واتساب</h1>
-                <span className="bg-muted px-2 py-0.5 rounded text-[10px] text-muted-foreground border">
-                  الإصدار بيتا
-                </span>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold mb-2">تدفقات واتساب</h1>
+                <p className="text-sm text-muted-foreground">
+                  يتيح لك تدفقات واتساب إنشاء نماذج تفاعلية وجمع بيانات منظمة من المستخدمين.{" "}
+                  <a
+                    href="https://developers.facebook.com/docs/whatsapp/flows"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    تعرف على المزيد
+                  </a>
+                </p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="gap-2 bg-transparent">
@@ -26,22 +34,17 @@ export default function FlowsPage() {
               </div>
             </div>
 
-            <p className="text-muted-foreground text-sm mb-8">
-              يتيح لك تدفقات واتساب إنشاء نماذج تفاعلية وجمع بيانات منظمة من المستخدمين.
-              <span className="text-primary cursor-pointer mr-1">تعرف على المزيد</span>
-            </p>
-
-            <div className="flex gap-4 mb-8">
-              <Button variant="ghost" className="border-b-2 border-primary rounded-none px-0 h-auto pb-2 text-primary">
-                الردود
-              </Button>
-              <Button variant="ghost" className="text-muted-foreground px-0 h-auto pb-2">
+            <div className="flex gap-4 mb-6 border-b">
+              <Button variant="ghost" className="border-b-2 border-primary rounded-none px-4 h-auto pb-3 text-primary">
                 التدفقات
+              </Button>
+              <Button variant="ghost" className="text-muted-foreground px-4 h-auto pb-3">
+                الردود
               </Button>
             </div>
 
-            <div className="flex flex-col items-center justify-center py-20 border rounded-xl bg-muted/30 border-dashed">
-              <p className="text-muted-foreground text-sm">لا توجد بيانات متاحة</p>
+            <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed rounded-lg">
+              <p className="text-muted-foreground">لا توجد بيانات متاحة</p>
             </div>
           </div>
 

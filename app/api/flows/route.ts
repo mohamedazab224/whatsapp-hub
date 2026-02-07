@@ -6,63 +6,51 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")
-    const page = parseInt(searchParams.get("page") || "1")
-    const limit = parseInt(searchParams.get("limit") || "20")
     
-    logInfo("API:GET /api/contacts", "Fetching contacts")
-
+    logInfo("API:GET /api/flows", "Fetching WhatsApp flows")
+    
     const supabase = await createSupabaseServerClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      logWarn("API:GET /api/contacts", "Unauthorized access")
+      logWarn("API:GET /api/flows", "Unauthorized access")
       throw new UnauthorizedError()
     }
 
-    // Build query with search
+    // Get flows from workflows table
     let query = supabase
-      .from("contacts")
-      .select("id, wa_id, name, profile_picture_url, status, created_at, last_message_at, whatsapp_number_id")
+      .from("workflows")
+      .select("*")
       .eq("project_id", user.id)
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,wa_id.ilike.%${search}%`)
+      query = query.ilike("name", `%${search}%`)
     }
 
-    // Pagination
-    const from = (page - 1) * limit
-    const to = from + limit - 1
+    const { data: flows, error: flowsError } = await query.order("created_at", { ascending: false })
 
-    const { data: contacts, error: contactsError } = await query
-      .order("last_message_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .range(from, to)
-
-    const { count: totalContacts } = await supabase
-      .from("contacts")
+    const { count: totalFlows } = await supabase
+      .from("workflows")
       .select("*", { count: "exact", head: true })
       .eq("project_id", user.id)
 
-    if (contactsError) throw contactsError
+    if (flowsError) throw flowsError
 
-    logInfo("API:GET /api/contacts", `Retrieved ${contacts?.length || 0} contacts`)
+    logInfo("API:GET /api/flows", `Retrieved ${flows?.length || 0} flows`)
 
     return NextResponse.json({
-      contacts: contacts || [],
-      total: totalContacts || 0,
-      page,
-      limit,
-      totalPages: Math.ceil((totalContacts || 0) / limit),
+      flows: flows || [],
+      total: totalFlows || 0,
     })
   } catch (error) {
-    logError("API:GET /api/contacts", error)
-
+    logError("API:GET /api/flows", error)
+    
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-
+    
     return NextResponse.json(
-      { error: "Failed to fetch contacts" },
+      { error: "Failed to fetch flows" },
       { status: 500 }
     )
   }
@@ -71,10 +59,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-
+    
     // Validation
-    if (!body.name || !body.wa_id) {
-      throw new ValidationError("Name and WhatsApp ID are required")
+    if (!body.name) {
+      throw new ValidationError("Flow name is required")
     }
 
     const supabase = await createSupabaseServerClient()
@@ -84,39 +72,38 @@ export async function POST(request: Request) {
       throw new UnauthorizedError()
     }
 
-    logInfo("API:POST /api/contacts", `Creating contact for user ${user.id}`)
+    logInfo("API:POST /api/flows", `Creating flow for user ${user.id}`)
 
     const { data, error } = await supabase
-      .from("contacts")
+      .from("workflows")
       .insert({
         project_id: user.id,
         name: body.name,
-        wa_id: body.wa_id,
-        whatsapp_number_id: body.whatsapp_number_id,
-        status: body.status || "active",
+        is_active: body.is_active ?? true,
+        ai_enabled: body.ai_enabled ?? false,
+        is_default: body.is_default ?? false,
       })
       .select()
 
     if (error) throw error
 
-    logInfo("API:POST /api/contacts", "Contact created successfully")
+    logInfo("API:POST /api/flows", "Flow created successfully")
 
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
-    logError("API:POST /api/contacts", error)
-
+    logError("API:POST /api/flows", error)
+    
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-
+    
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-
+    
     return NextResponse.json(
-      { error: "Failed to create contact" },
+      { error: "Failed to create flow" },
       { status: 500 }
     )
   }
 }
-

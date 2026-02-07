@@ -102,7 +102,8 @@ CREATE POLICY "whatsapp_numbers_update_own_project" ON whatsapp_numbers
 CREATE POLICY "whatsapp_numbers_service_role_all" ON whatsapp_numbers
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Message Templates
@@ -144,7 +145,8 @@ CREATE POLICY "templates_update_own_project" ON message_templates
 CREATE POLICY "templates_service_role_all" ON message_templates
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Templates (WhatsApp Sync)
@@ -158,7 +160,8 @@ CREATE POLICY "templates_wa_select_authenticated" ON templates
 CREATE POLICY "templates_wa_service_role_all" ON templates
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Contacts
@@ -200,7 +203,8 @@ CREATE POLICY "contacts_update_own_project" ON contacts
 CREATE POLICY "contacts_service_role_all" ON contacts
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Messages
@@ -231,7 +235,8 @@ CREATE POLICY "messages_insert_own_project" ON messages
 CREATE POLICY "messages_service_role_all" ON messages
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Projects
@@ -337,7 +342,7 @@ CREATE POLICY "analytics_select_own_project" ON communication_analytics
 CREATE POLICY "analytics_insert_service_role" ON communication_analytics
     FOR INSERT
     TO service_role
-    USING (true);
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Magic Links
@@ -347,7 +352,8 @@ CREATE POLICY "analytics_insert_service_role" ON communication_analytics
 CREATE POLICY "magic_links_service_only" ON magic_links
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Media Files
@@ -378,7 +384,8 @@ CREATE POLICY "media_insert_own_project" ON media_files
 CREATE POLICY "media_service_role_all" ON media_files
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Email Logs
@@ -398,7 +405,8 @@ CREATE POLICY "email_logs_select_own_project" ON email_logs
 CREATE POLICY "email_logs_service_role_all" ON email_logs
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- ============================================
 -- Create Secure Policies - Other Tables
@@ -417,9 +425,20 @@ CREATE POLICY "ai_config_select_own_project" ON ai_configurations
     );
 
 CREATE POLICY "ai_config_update_own_project" ON ai_configurations
-    FOR ALL
+    FOR UPDATE
     TO authenticated
     USING (
+        project_id IN (
+            SELECT project_id 
+            FROM project_members 
+            WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "ai_config_insert_own_project" ON ai_configurations
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
         project_id IN (
             SELECT project_id 
             FROM project_members 
@@ -439,8 +458,19 @@ CREATE POLICY "integrations_select_own_project" ON integrations
         )
     );
 
-CREATE POLICY "integrations_manage_own_project" ON integrations
-    FOR ALL
+CREATE POLICY "integrations_insert_own_project" ON integrations
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        project_id IN (
+            SELECT project_id 
+            FROM project_members 
+            WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "integrations_update_own_project" ON integrations
+    FOR UPDATE
     TO authenticated
     USING (
         project_id IN (
@@ -462,8 +492,19 @@ CREATE POLICY "workflows_select_own_project" ON workflows
         )
     );
 
-CREATE POLICY "workflows_manage_own_project" ON workflows
-    FOR ALL
+CREATE POLICY "workflows_insert_own_project" ON workflows
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        project_id IN (
+            SELECT project_id 
+            FROM project_members 
+            WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "workflows_update_own_project" ON workflows
+    FOR UPDATE
     TO authenticated
     USING (
         project_id IN (
@@ -489,8 +530,23 @@ CREATE POLICY "workflow_steps_select_authenticated" ON workflow_steps
         )
     );
 
-CREATE POLICY "workflow_steps_manage_authenticated" ON workflow_steps
-    FOR ALL
+CREATE POLICY "workflow_steps_insert_authenticated" ON workflow_steps
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        workflow_id IN (
+            SELECT w.id 
+            FROM workflows w
+            WHERE w.project_id IN (
+                SELECT project_id 
+                FROM project_members 
+                WHERE user_id = auth.uid()
+            )
+        )
+    );
+
+CREATE POLICY "workflow_steps_update_authenticated" ON workflow_steps
+    FOR UPDATE
     TO authenticated
     USING (
         workflow_id IN (
@@ -516,8 +572,19 @@ CREATE POLICY "webhook_endpoints_select_own_project" ON webhook_endpoints
         )
     );
 
-CREATE POLICY "webhook_endpoints_manage_own_project" ON webhook_endpoints
-    FOR ALL
+CREATE POLICY "webhook_endpoints_insert_own_project" ON webhook_endpoints
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        project_id IN (
+            SELECT project_id 
+            FROM project_members 
+            WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "webhook_endpoints_update_own_project" ON webhook_endpoints
+    FOR UPDATE
     TO authenticated
     USING (
         project_id IN (
@@ -531,7 +598,8 @@ CREATE POLICY "webhook_endpoints_manage_own_project" ON webhook_endpoints
 CREATE POLICY "webhook_events_service_only" ON webhook_events
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- Email Attachments
 CREATE POLICY "email_attachments_select_own_project" ON email_attachments
@@ -548,7 +616,8 @@ CREATE POLICY "email_attachments_select_own_project" ON email_attachments
 CREATE POLICY "email_attachments_service_role" ON email_attachments
     FOR ALL
     TO service_role
-    USING (true);
+    USING (true)
+    WITH CHECK (true);
 
 -- Notification Preferences
 CREATE POLICY "notification_prefs_select_own_project" ON notification_preferences
@@ -562,8 +631,19 @@ CREATE POLICY "notification_prefs_select_own_project" ON notification_preference
         )
     );
 
-CREATE POLICY "notification_prefs_manage_own_project" ON notification_preferences
-    FOR ALL
+CREATE POLICY "notification_prefs_insert_own_project" ON notification_preferences
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        project_id IN (
+            SELECT project_id 
+            FROM project_members 
+            WHERE user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "notification_prefs_update_own_project" ON notification_preferences
+    FOR UPDATE
     TO authenticated
     USING (
         project_id IN (

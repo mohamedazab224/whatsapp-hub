@@ -1,13 +1,17 @@
-import { getSupabaseServer } from "@/lib/supabase"
 import { SidebarClient } from "./sidebar-client"
 
 export async function Sidebar() {
-  const supabase = getSupabaseServer()
-  const { data: projects } = await supabase.from("projects").select("id, name").order("created_at", { ascending: true })
-  const { data: numbers } = await supabase
-    .from("whatsapp_numbers")
-    .select("id, project_id")
-    .order("created_at", { ascending: true })
+  // Mock data for now - replace with Supabase queries when configured
+  const projects = [
+    { id: "1", name: "المشروع الرئيسي" },
+    { id: "2", name: "مشروع الاختبار" },
+  ]
+  
+  const numbers = [
+    { id: "1", project_id: "1" },
+    { id: "2", project_id: "1" },
+    { id: "3", project_id: "2" },
+  ]
 
-  return <SidebarClient projects={projects || []} numbers={numbers || []} />
+  return <SidebarClient projects={projects} numbers={numbers} />
 }

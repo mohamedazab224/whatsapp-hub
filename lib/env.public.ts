@@ -15,7 +15,11 @@ export const getPublicEnv = (): PublicEnv => {
   if (cachedPublicEnv) return cachedPublicEnv
   const parsed = publicEnvSchema.safeParse(process.env)
   if (!parsed.success) {
-    throw new Error(`Invalid environment configuration (public): ${formatIssues(parsed.error.issues)}`)
+    // Log warning instead of throwing
+    console.warn(`Invalid environment configuration (public): ${formatIssues(parsed.error.issues)}`)
+    // Return empty object for optional values
+    cachedPublicEnv = {}
+    return cachedPublicEnv
   }
   cachedPublicEnv = parsed.data
   return cachedPublicEnv

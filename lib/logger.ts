@@ -18,7 +18,20 @@ const levelToConsole: Record<LogLevel, (...args: unknown[]) => void> = {
 
 export type LogMeta = Record<string, unknown>
 
-export const shouldLog = (level: LogLevel) => levelPriority[level] >= levelPriority[getLoggerEnv().LOG_LEVEL]
+let cachedLogLevel: LogLevel | null = null
+
+const getLogLevel = (): LogLevel => {
+  if (cachedLogLevel) return cachedLogLevel
+  try {
+    cachedLogLevel = getLoggerEnv().LOG_LEVEL as LogLevel
+    return cachedLogLevel
+  } catch (error) {
+    console.warn("[Logger] Failed to get log level:", error)
+    return "info"
+  }
+}
+
+export const shouldLog = (level: LogLevel) => levelPriority[level] >= levelPriority[getLogLevel()]
 
 export const logger = {
   log(level: LogLevel, message: string, meta: LogMeta = {}) {

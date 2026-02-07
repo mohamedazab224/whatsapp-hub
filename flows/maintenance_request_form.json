@@ -1,0 +1,187 @@
+{
+  "version": "6.0",
+  "data_api_version": "3.0",
+  "routing_model": {},
+  "screens": [
+    {
+      "id": "SERVICE_TYPE",
+      "title": "نوع الخدمة",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "service_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "service_type",
+                "label": "اختر نوع الخدمة",
+                "required": true,
+                "data-source": [
+                  {
+                    "id": "plumbing",
+                    "title": "صحي"
+                  },
+                  {
+                    "id": "electrical",
+                    "title": "كهرباء"
+                  },
+                  {
+                    "id": "ac",
+                    "title": "تكييف"
+                  },
+                  {
+                    "id": "carpentry",
+                    "title": "نجارة"
+                  },
+                  {
+                    "id": "painting",
+                    "title": "دهان"
+                  },
+                  {
+                    "id": "other",
+                    "title": "أخرى"
+                  }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "متابعة",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": {
+                    "type": "screen",
+                    "name": "DETAILS"
+                  },
+                  "payload": {}
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "DETAILS",
+      "title": "تفاصيل الطلب",
+      "terminal": false,
+      "data": {
+        "service_type": "${form.service_form.service_type}"
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "details_form",
+            "children": [
+              {
+                "type": "TextArea",
+                "name": "description",
+                "label": "وصف المشكلة",
+                "required": true,
+                "input-type": "text",
+                "helper-text": "اشرح المشكلة بالتفصيل"
+              },
+              {
+                "type": "TextInput",
+                "name": "address",
+                "label": "العنوان",
+                "required": false,
+                "input-type": "text",
+                "helper-text": "عنوان تنفيذ الصيانة"
+              },
+              {
+                "type": "Footer",
+                "label": "متابعة",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": {
+                    "type": "screen",
+                    "name": "SCHEDULE"
+                  },
+                  "payload": {}
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "SCHEDULE",
+      "title": "الموعد المفضل",
+      "terminal": false,
+      "data": {
+        "service_type": "${data.service_type}",
+        "description": "${form.details_form.description}",
+        "address": "${form.details_form.address}"
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "schedule_form",
+            "children": [
+              {
+                "type": "DatePicker",
+                "name": "preferred_date",
+                "label": "التاريخ المفضل",
+                "required": false,
+                "min-date": "2024-01-01",
+                "max-date": "2025-12-31",
+                "unavailable-dates": []
+              },
+              {
+                "type": "Dropdown",
+                "name": "preferred_time",
+                "label": "الوقت المفضل",
+                "required": false,
+                "data-source": [
+                  {
+                    "id": "morning",
+                    "title": "صباحاً (8 ص - 12 ظ)"
+                  },
+                  {
+                    "id": "afternoon",
+                    "title": "ظهراً (12 ظ - 4 م)"
+                  },
+                  {
+                    "id": "evening",
+                    "title": "مساءً (4 م - 8 م)"
+                  }
+                ]
+              },
+              {
+                "type": "TextArea",
+                "name": "notes",
+                "label": "ملاحظات إضافية",
+                "required": false,
+                "input-type": "text"
+              },
+              {
+                "type": "Footer",
+                "label": "إرسال الطلب",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": {
+                    "service_type": "${data.service_type}",
+                    "description": "${data.description}",
+                    "address": "${data.address}",
+                    "preferred_date": "${form.schedule_form.preferred_date}",
+                    "preferred_time": "${form.schedule_form.preferred_time}",
+                    "notes": "${form.schedule_form.notes}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

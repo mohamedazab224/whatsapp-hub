@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "./supabase"
 import { logger } from "./logger"
+import { processMaintenanceFlow } from "./flow-processor"
 
 type WebhookContext = {
   requestId: string
@@ -13,6 +14,34 @@ export async function processWebhookEvent({ requestId, body }: WebhookContext) {
   const changes = entry?.changes?.[0]
   const value = changes?.value
   const messages = value?.messages ?? []
+
+  // Check for WhatsApp Flow responses
+  for (const msg of messages) {
+    if (msg.type === 'interactive' && msg.interactive?.type === 'nfm_reply') {
+      const flowName = msg.interactive.nfm_reply?.name
+      
+      if (flowName === 'maintenance_request_form') {
+        logger.info('[Webhook] Detected maintenance Flow response', { requestId, flowName })
+        
+        const whatsappPhoneNumberId = value.metadata?.phone_number_id
+        const { data: waNumber } = await supabase
+          .from('whatsapp_numbers')
+          .select('project_id')
+          .eq('phone_number_id', whatsappPhoneNumberId)
+          .single()
+        
+        if (waNumber?.project_id) {
+          try {
+            await processMaintenanceFlow(body, waNumber.project_id)
+            logger.info('[Webhook] Maintenance Flow processed', { requestId })
+            return // Exit after processing Flow
+          } catch (error) {
+            logger.error('[Webhook] Flow processing failed', { requestId, error })
+          }
+        }
+      }
+    }
+  }
 
   for (const msg of messages) {
     const contact = value.contacts?.[0]

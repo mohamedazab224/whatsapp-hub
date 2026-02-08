@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from "next/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/server"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
-  const { type } = params;
+  const { type } = await params
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
   
@@ -16,7 +16,7 @@ export async function GET(
     );
   }
   
-  const supabase = createClient();
+  const supabase = createSupabaseAdminClient()
   
   // جلب القوالب حسب النوع
   const { data: templates, error } = await supabase
@@ -38,14 +38,14 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
-    const { type } = params;
+    const { type } = await params
     const body = await request.json();
     const { projectId, ...templateData } = body;
     
-    const supabase = createClient();
+    const supabase = createSupabaseAdminClient()
     
     // إنشاء قالب جديد
     const { data: template, error } = await supabase

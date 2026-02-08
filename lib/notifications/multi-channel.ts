@@ -1,6 +1,6 @@
 import { EmailService } from '@/lib/email/service';
 import { WhatsAppService } from '@/lib/whatsapp/service';
-import { createClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from "@/lib/supabase/server"
 
 export class MultiChannelNotificationService {
   constructor(private projectId: string) {}
@@ -85,7 +85,7 @@ export class MultiChannelNotificationService {
     status: string,
     error?: string
   ) {
-    const supabase = createClient();
+    const supabase = createSupabaseAdminClient();
     await supabase
       .from('communication_logs')
       .insert({

@@ -1,7 +1,7 @@
-import nodemailer from 'nodemailer';
-import Handlebars from 'handlebars';
-import { createClient } from '@/lib/supabase/server';
-import { render } from '@/lib/template-engine';
+import nodemailer from "nodemailer"
+import Handlebars from "handlebars"
+import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { render } from "@/lib/template-engine"
 
 export class EmailService {
   private transporter: nodemailer.Transporter;
@@ -12,7 +12,7 @@ export class EmailService {
   
   private async initializeTransporter() {
     // الحصول على إعدادات SMTP من Project Config
-    const supabase = createClient();
+    const supabase = createSupabaseAdminClient()
     const { data: project } = await supabase
       .from('projects')
       .select('smtp_config')
@@ -88,7 +88,7 @@ export class EmailService {
   }
   
   private async getTemplate(templateName: string) {
-    const supabase = createClient();
+    const supabase = createSupabaseAdminClient()
     const { data: template } = await supabase
       .from('communication_templates')
       .select('*')
@@ -122,6 +122,14 @@ export class EmailService {
       text: compiledText,
     };
   }
+
+  private validateVariables(required: string[] | null | undefined, variables: Record<string, any>) {
+    if (!required || required.length === 0) return
+    const missing = required.filter((key) => variables[key] === undefined || variables[key] === null)
+    if (missing.length > 0) {
+      throw new Error(`Missing required variables: ${missing.join(", ")}`)
+    }
+  }
   
   private getFromAddress(template: any) {
     const projectConfig = template.project.email_config;
@@ -129,7 +137,7 @@ export class EmailService {
   }
   
   private async logEmail(data: any) {
-    const supabase = createClient();
+    const supabase = createSupabaseAdminClient()
     await supabase
       .from('email_logs')
       .insert({

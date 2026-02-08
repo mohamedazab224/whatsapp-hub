@@ -85,7 +85,7 @@ export function rateLimitMiddleware(
 ) {
   return (handler: (req: NextRequest) => Promise<NextResponse | Response>) => {
     return async (req: NextRequest) => {
-      const ip = req.headers.get("x-forwarded-for") || req.ip || "unknown"
+      const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown"
       const now = Date.now()
 
       let record = requestCounts.get(ip)

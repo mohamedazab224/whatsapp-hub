@@ -1,16 +1,14 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { EmailService } from "@/lib/email/service"
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { EmailService } from '@/lib/email/service';
 
 export async function POST(request: NextRequest) {
   try {
     const { projectId, template, recipient, variables, options } = await request.json();
     
     // التحقق من الصلاحيات
-    const supabase = await createSupabaseServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const supabase = createSupabaseAdminClient();
+    const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
       return NextResponse.json(

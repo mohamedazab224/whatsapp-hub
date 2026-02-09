@@ -11,14 +11,3 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields' },
         { status: 400 }
       );
-    }
-
-    // TODO: implement actual sending
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid request' },
-      { status: 400 }
-    );
-  }
-}

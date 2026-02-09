@@ -1,7 +1,7 @@
-import nodemailer from "nodemailer"
-import Handlebars from "handlebars"
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
-import { render } from "@/lib/template-engine"
+import nodemailer from 'nodemailer';
+import Handlebars from 'handlebars';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { render } from '@/lib/template-engine';
 
 export class EmailService {
   private transporter: nodemailer.Transporter;
@@ -12,7 +12,7 @@ export class EmailService {
   
   private async initializeTransporter() {
     // الحصول على إعدادات SMTP من Project Config
-    const supabase = createSupabaseAdminClient()
+    const supabase = createSupabaseAdminClient();
     const { data: project } = await supabase
       .from('projects')
       .select('smtp_config')
@@ -88,7 +88,7 @@ export class EmailService {
   }
   
   private async getTemplate(templateName: string) {
-    const supabase = createSupabaseAdminClient()
+    const supabase = createSupabaseAdminClient();
     const { data: template } = await supabase
       .from('communication_templates')
       .select('*')
@@ -137,7 +137,7 @@ export class EmailService {
   }
   
   private async logEmail(data: any) {
-    const supabase = createSupabaseAdminClient()
+    const supabase = createSupabaseAdminClient();
     await supabase
       .from('email_logs')
       .insert({

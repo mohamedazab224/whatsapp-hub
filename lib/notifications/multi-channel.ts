@@ -1,6 +1,6 @@
 import { EmailService } from '@/lib/email/service';
 import { WhatsAppService } from '@/lib/whatsapp/service';
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
 export class MultiChannelNotificationService {
   constructor(private projectId: string) {}

@@ -13,21 +13,7 @@ export async function POST(request: NextRequest) {
     } = await request.json()
 
     if (!projectId || !templateName || !recipient) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
-    }
-
-    const service = new MultiChannelNotificationService(projectId)
-    const result = await service.send(channels, templateName, recipient, variables ?? {}, options)
-
-    return NextResponse.json({
-      success: result.success,
-      results: result.results,
-    })
-  } catch (error) {
-    console.error("[Notifications] Error sending notification:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected error" },
-      { status: 500 }
-    )
-  }
-}
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );

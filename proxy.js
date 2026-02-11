@@ -15,7 +15,7 @@ const isStaticAsset = (pathname) =>
   pathname === "/robots.txt" ||
   pathname === "/sitemap.xml"
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request) {
   const { pathname } = request.nextUrl
 
   if (isStaticAsset(pathname)) {
@@ -43,3 +43,4 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image).*)"],
 }
+

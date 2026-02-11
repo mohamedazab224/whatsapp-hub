@@ -1,230 +1,331 @@
-# WhatsApp platform
+# WhatsApp Hub - لوحة تحكم WhatsApp المتكاملة
 
-## Overview
+منصة احترافية وآمنة وسريعة لإدارة WhatsApp مع دعم كامل للوسائط والرسائل والعمليات الآلية والتحديثات الفعلية.
 
-This repository contains the WhatsApp webhook platform for self-hosted deployments.
+## ✨ المميزات الرئيسية
 
-## Deployment (self-hosted)
+- **المصادقة الآمنة 100%**: نظام مصادقة Supabase متقدم مع دعم Google OAuth
+- **إدارة الجهات الحقيقية**: إدارة شاملة للعملاء مع تاريخ الرسائل الكامل
+- **إدارة الرسائل**: إرسال واستقبال رسائل حقيقية مع دعم الوسائط
+- **إدارة الأرقام**: ربط وإدارة أرقام WhatsApp Business
+- **سير العمل**: إنشاء عمليات آلية ذكية
+- **التحديثات الفعلية**: تحديثات فورية للبيانات مع Supabase Realtime
+- **التحليلات**: إحصائيات مفصلة عن الأداء والرسائل
+- **الأمان المتقدم**: Row Level Security والتشفير والـ rate limiting
+- **الأداء السريع**: Caching متقدم و Pagination
+- **السجلات الشاملة**: تسجيل كامل لجميع الأحداث والأخطاء
 
-1. Point your domain (for example, `webhook.alazab.com`) to your server and deploy this Next.js app.
-2. Create a `.env` file from `.env.example` and set the required environment variables (do not commit secrets):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `AUTH_PASSWORD_SALT`
-   - `SESSION_SECRET`
-   - `BASIC_AUTH_USERS` (comma-separated `email:password:role` entries)
-   - `WHATSAPP_ACCESS_TOKEN`
-   - `WHATSAPP_API_VERSION` (optional, defaults to `v21.0`)
-   - `WHATSAPP_APP_SECRET` (used to verify webhook signatures)
-   - `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
-   - `QUEUE_SECRET` (shared secret to run the queue processor endpoint)
-   - `LOG_LEVEL` (optional, one of `debug`, `info`, `warn`, `error`)
-   - `WEBHOOK_RATE_LIMIT_MAX`
-   - `WEBHOOK_RATE_LIMIT_WINDOW_SEC`
-   - `QUEUE_RATE_LIMIT_MAX`
-   - `QUEUE_RATE_LIMIT_WINDOW_SEC`
-   - `ERP_API_URL`
-   - `ERP_API_KEY`
-   - `CRM_API_URL`
-   - `CRM_API_KEY`
-   - `HELPDESK_API_URL`
-   - `HELPDESK_API_KEY`
-3. Configure your WhatsApp Business webhook in Meta:
-   - Callback URL: `https://webhook.alazab.com/api/webhook`
-   - Verify token: set to the same value as `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
-   - Alternate callback URLs are also supported for providers that expect them:
-     - `https://webhook.alazab.com/webhook`
-     - `https://webhook.alazab.com/webhook/whatsapp`
-4. Create a Supabase storage bucket named `media` to store incoming attachments (images, audio, documents).
-
-## Authentication (Supabase Session Auth)
-
-This deployment uses Supabase Auth sessions (cookie-backed) for login and route protection.
-The middleware checks for an authenticated Supabase user and redirects unauthenticated users to `/login`.
-Webhook callbacks to `/api/webhook` are allowed to bypass authentication.
-
-Ensure Supabase Auth is configured for your deployment (providers, redirect URLs, and users).
-
-## Webhook Security
-
-- Incoming POST requests to `/api/webhook` must include a valid `X-Hub-Signature-256` header.
-- The signature is verified using `WHATSAPP_APP_SECRET` (Meta App Secret).
-- Rate limiting is enforced using `WEBHOOK_RATE_LIMIT_MAX` and `WEBHOOK_RATE_LIMIT_WINDOW_SEC`.
-
-## Environment Variable Mapping (Meta/Legacy Names)
-
-If your existing configuration uses the following names, map them to the required variables:
-
-- `VERIFY_TOKEN` or `WEBHOOK_VERIFY_TOKEN` → `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
-- `APP_SECRET` → `WHATSAPP_APP_SECRET`
-- `META_TOKEN` or `ACCESS_TOKEN` → `WHATSAPP_ACCESS_TOKEN`
-
-## Queue Processing (AI Responses)
-
-AI responses are enqueued as jobs so webhook requests stay fast. To process queued jobs, call:
+## 🏗️ البنية المعمارية
 
 ```
-POST /api/queue/whatsapp
-Headers: x-queue-secret: <QUEUE_SECRET>
+├── app/
+│   ├── api/                    # API routes حقيقية
+│   │   ├── stats/
+│   │   ├── contacts/
+│   │   ├── messages/
+│   │   ├── numbers/
+│   │   ├── workflows/
+│   │   └── ...
+│   ├── auth/                   # مسارات المصادقة
+│   ├── login/                  # صفحة تسجيل الدخول
+│   ├── (dashboard)/            # صفحات لوحة التحكم
+│   └── layout.tsx
+├── lib/
+│   ├── supabase/
+│   │   ├── server.ts           # عميل Supabase الخادم
+│   │   ├── client.ts           # عميل Supabase المتصفح
+│   │   ├── middleware.ts       # معالجة الجلسة
+│   │   ├── query-builder.ts    # بناء الاستعلامات
+│   │   └── error-handler.ts    # معالجة الأخطاء
+│   ├── auth-helpers.ts         # دوال المصادقة والتفويض
+│   ├── validators.ts           # التحقق من البيانات
+│   ├── cache.ts                # إدارة الـ cache
+│   ├── realtime.ts             # الاشتراكات الفعلية
+│   ├── system-logs.ts          # تسجيل الأحداث
+│   ├── api-wrapper.ts          # wrapper للـ API مع الأمان
+│   ├── rate-limit.ts           # تحديد معدل الطلبات
+│   ├── webhook-security.ts     # أمان الويب هوكس
+│   └── ...
+├── hooks/
+│   ├── use-data.ts             # جلب البيانات
+│   ├── use-realtime.ts         # تحديثات فعلية حقيقية
+│   └── ...
+└── components/                  # مكونات React
 ```
 
-You can schedule this endpoint via cron (every 1–2 minutes) to process pending jobs.
-The queue endpoint enforces rate limiting using `QUEUE_RATE_LIMIT_MAX` and `QUEUE_RATE_LIMIT_WINDOW_SEC`.
+## 🚀 البدء السريع
 
-## Database Tables (Suggested)
+### المتطلبات
 
-Below are minimal schemas to support idempotency, message status tracking, and queue processing:
+- Node.js 18+
+- pnpm (أو npm/yarn)
+- حساب Supabase مفعل
 
-```sql
-create table if not exists message_statuses (
-  id uuid primary key default gen_random_uuid(),
-  whatsapp_message_id text not null,
-  status text not null,
-  timestamp bigint,
-  recipient_id text,
-  conversation_id text,
-  pricing jsonb,
-  metadata jsonb,
-  created_at timestamptz default now()
-);
+### التثبيت والتشغيل
 
-create table if not exists message_jobs (
-  id uuid primary key default gen_random_uuid(),
-  type text not null,
-  status text not null default 'pending',
-  payload jsonb not null,
-  error text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
+```bash
+# 1. استنساخ المشروع
+git clone <repo-url>
+cd whatsapp-hub
+
+# 2. تثبيت المكتبات
+pnpm install
+
+# 3. نسخ ملف البيئة
+cp .env.example .env.local
+
+# 4. إضافة Supabase credentials إلى .env.local
+# - NEXT_PUBLIC_SUPABASE_URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY
+# - SUPABASE_SERVICE_ROLE_KEY
+
+# 5. تشغيل خادم التطوير
+pnpm dev
+
+# 6. الوصول إلى المشروع
+# افتح المتصفح على: http://localhost:3000
 ```
 
-## Core Data Model (Kapso-Style)
+## 🔐 الأمان والحماية
 
-The following entities are required to operate a multi-tenant WhatsApp integration hub:
+### مميزات الأمان المطبقة
 
-- `projects`
-- `whatsapp_business_accounts`
-- `whatsapp_numbers`
-- `contacts`
-- `messages`
-- `media_files`
-- `webhook_events`
-- `workflows`
-- `workflow_steps`
-- `integrations`
+1. **المصادقة المتقدمة**
+   - Supabase Auth مع JWT tokens آمنة
+   - دعم Google OAuth
+   - جلسات محمية مع HTTP-only cookies
+   - معالجة آمنة للأخطاء بدون تسريب المعلومات
 
-### Required Relationships
+2. **التفويض والصلاحيات**
+   - Row Level Security (RLS) على جميع الجداول
+   - التحقق من الوصول للمشروع لكل طلب
+   - صلاحيات منفصلة لكل عملية
+   - منع الوصول غير المصرح
 
-- Every message links to **one** `project`, **one** `whatsapp_number`, and **one** `workflow`.
-- Each `whatsapp_number` maps to a `project` and optionally a `whatsapp_business_account`.
+3. **تحديد معدل الطلبات**
+   - Rate Limiting لجميع endpoints
+   - حماية من هجمات Brute Force
+   - تتبع محاولات الدخول الفاشلة
+   - إعادة محاولة ذكية
 
-### Suggested Schema Additions
+4. **التحقق من الصحة الدقيق**
+   - Zod schemas للتحقق من البيانات
+   - التحقق من المدخلات على الخادم
+   - رسائل خطأ آمنة
+   - منع injection attacks
 
-```sql
-create table if not exists webhook_events (
-  id uuid primary key default gen_random_uuid(),
-  source text not null,
-  payload jsonb not null,
-  raw_body text,
-  signature text,
-  event_hash text not null,
-  created_at timestamptz default now()
-);
+5. **أمان الويب هوكس**
+   - توقيع HMAC SHA-256
+   - التحقق من التوقيع لكل طلب
+   - timing-safe comparison
+   - منع replay attacks
 
-create unique index if not exists webhook_events_hash_idx on webhook_events (event_hash);
+6. **التسجيل والمراقبة**
+   - تسجيل جميع أحداث الأمان
+   - تتبع محاولات الدخول
+   - تسجيل الأخطاء مع السياق
+   - إنذارات الأنشطة المريبة
 
-create table if not exists media_files (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null,
-  whatsapp_number_id uuid not null,
-  workflow_id uuid not null,
-  contact_id uuid,
-  message_id uuid,
-  media_id text,
-  mime_type text,
-  file_size bigint,
-  storage_path text,
-  public_url text,
-  metadata jsonb,
-  created_at timestamptz default now()
-);
+## 📊 قاعدة البيانات
 
-alter table messages
-  add column if not exists project_id uuid,
-  add column if not exists workflow_id uuid;
+### الجداول المستخدمة
 
-create table if not exists workflows (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null,
-  name text not null,
-  is_default boolean default false,
-  is_active boolean default true,
-  ai_enabled boolean default false,
-  created_at timestamptz default now()
-);
+- `users` - بيانات المستخدمين
+- `projects` - المشاريع (واحد لكل مستخدم)
+- `contacts` - جهات الاتصال
+- `messages` - الرسائل الفعلية
+- `whatsapp_numbers` - أرقام WhatsApp Business
+- `workflows` - العمليات الآلية
+- `templates` - قوالب الرسائل
+- `webhook_endpoints` - نقاط نهاية الويب هوكس
+- `system_logs` - سجلات النظام الكاملة
 
-create table if not exists workflow_steps (
-  id uuid primary key default gen_random_uuid(),
-  workflow_id uuid not null,
-  type text not null,
-  is_active boolean default true,
-  config jsonb,
-  created_at timestamptz default now()
-);
+### Row Level Security (RLS)
 
-create table if not exists integrations (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null,
-  type text not null,
-  is_active boolean default true,
-  config jsonb,
-  created_at timestamptz default now()
-);
+جميع الجداول محمية بـ RLS:
+- كل مستخدم يرى فقط بيانات مشروعه
+- العمليات الحساسة محمية بـ service role
+- لا يمكن الوصول لبيانات المستخدمين الآخرين
 
-create table if not exists webhook_endpoints (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null,
-  url text not null,
-  events jsonb,
-  is_active boolean default true,
-  created_at timestamptz default now()
-);
+## 🔄 التحديثات الفعلية
 
-create table if not exists users (
-  id uuid primary key default gen_random_uuid(),
-  email text not null,
-  password_hash text not null,
-  role text not null default 'viewer',
-  is_active boolean default true,
-  created_at timestamptz default now()
-);
+استخدم hooks الفعلية للتحديثات الحية الفورية:
 
-create table if not exists templates (
-  id uuid primary key default gen_random_uuid(),
-  wa_template_name text not null,
-  wa_template_code text not null,
-  phone_number_id uuid not null,
-  status text not null,
-  category text not null,
-  language text not null,
-  preview_text text,
-  variables_count int default 0,
-  created_at timestamptz default now()
-);
+```typescript
+import { useRealtimeContacts } from "@/hooks/use-realtime"
 
-create unique index if not exists templates_unique_idx on templates (wa_template_code, phone_number_id);
+export function ContactsList({ projectId }) {
+  const { contacts, isLoading, mutate } = useRealtimeContacts(projectId)
+  
+  return (
+    <div>
+      {contacts.map(contact => (
+        <div key={contact.id}>{contact.name}</div>
+      ))}
+    </div>
+  )
+}
 ```
 
-## How It Works
+## 📝 API Routes (الحقيقية)
 
-1. Configure the required environment variables.
-2. Deploy the Next.js app to your server.
-3. Register the WhatsApp Business webhook in Meta.
-4. Store incoming attachments in the Supabase `media` bucket.
+### Contacts (جهات الاتصال)
+- `GET /api/contacts` - جلب جهات الاتصال مع pagination
+- `POST /api/contacts` - إنشاء جهة اتصال
+- `GET /api/contacts/:id` - جهة اتصال معينة
 
-## Idempotency & Status Tracking
+### Messages (الرسائل الحقيقية)
+- `GET /api/messages` - جلب الرسائل
+- `POST /api/messages` - إرسال رسالة
+- `GET /api/messages/:id` - رسالة معينة
 
-- Incoming messages are checked by `whatsapp_message_id` to avoid duplicate inserts.
-- Delivery/read status callbacks are stored in `message_statuses` for auditing and analytics.
+### Numbers (الأرقام)
+- `GET /api/numbers` - جلب الأرقام المتصلة
+- `POST /api/numbers` - إضافة رقم
+
+### Stats (الإحصائيات)
+- `GET /api/stats` - إحصائيات المشروع
+
+### Workflows (سير العمل)
+- `GET /api/workflows` - جلب سير العمل
+- `POST /api/workflows` - إنشاء سير عمل
+
+## ⚡ الأداء والتحسينات
+
+### Caching الذكي
+```typescript
+import { invalidateCache, CACHE_TAGS } from "@/lib/cache"
+
+// إبطال الـ cache عند التحديث
+await invalidateCache(CACHE_TAGS.CONTACTS_BY_PROJECT(projectId))
+```
+
+### Pagination فعالة
+```typescript
+const { data, count, totalPages } = await paginatedFetch(
+  "contacts",
+  1, // page
+  20, // limit
+  { project_id: projectId }
+)
+```
+
+### Batch Fetch للأداء
+```typescript
+const contacts = await batchFetch("contacts", ids, { project_id })
+```
+
+## 🧪 الاختبار
+
+```bash
+# تشغيل جميع الاختبارات
+pnpm test
+
+# اختبارات محددة
+pnpm test basic-auth
+pnpm test webhook-security
+pnpm test logger
+```
+
+## 📚 التوثيق
+
+### Validation مع Zod
+
+```typescript
+import { validateData, contactSchema } from "@/lib/validators"
+
+const contact = validateData(req.body, contactSchema)
+// سيرمي ValidationError إذا كانت البيانات غير صحيحة
+```
+
+### Logging الشامل
+
+```typescript
+import { logSystemEvent, logAuthEvent, logApiError } from "@/lib/system-logs"
+
+// تسجيل حدث أمان
+await logAuthEvent(userId, projectId, "login", true)
+
+// تسجيل خطأ API
+await logApiError(projectId, userId, "/api/messages", 500, "Database error")
+```
+
+### معالجة الأخطاء الآمنة
+
+```typescript
+import { withApiWrapper } from "@/lib/api-wrapper"
+
+export const GET = withApiWrapper(
+  async (req) => {
+    // كودك هنا - المصادقة والأمان تعاملت تلقائياً
+    return NextResponse.json({ data: "success" })
+  },
+  { requireAuth: true, rateLimit: { windowMs: 60000, max: 30 } }
+)
+```
+
+## 🚀 النشر على Vercel
+
+```bash
+# 1. ربط المشروع
+vercel link
+
+# 2. إضافة متغيرات البيئة
+vercel env add NEXT_PUBLIC_SUPABASE_URL
+vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
+vercel env add SUPABASE_SERVICE_ROLE_KEY
+
+# 3. النشر
+vercel deploy --prod
+```
+
+## 📊 مراقبة النظام
+
+### عرض السجلات
+```typescript
+import { getSystemLogs } from "@/lib/system-logs"
+
+const logs = await getSystemLogs(projectId, { 
+  category: "security",
+  limit: 100 
+})
+```
+
+### المقاييس المتاحة
+- عدد الرسائل المرسلة/المستقبلة
+- عدد جهات الاتصال النشطة
+- معدل نجاح العمليات
+- أخطاء النظام والتحذيرات
+
+## 🐛 استكشاف الأخطاء
+
+### المشاكل الشائعة
+
+**1. خطأ في الاتصال بـ Supabase**
+- تحقق من `.env.local` يحتوي على credentials صحيح
+- تأكد من تفعيل Supabase
+- تحقق من URL و keys
+
+**2. مشاكل في المصادقة**
+- امسح ملفات تعريف الارتباط: `Cmd+Shift+Delete`
+- حاول تسجيل الخروج والدخول مجدداً
+- تحقق من RLS policies
+
+**3. بطء التطبيق**
+- افحص Network tab في DevTools
+- تحقق من Realtime subscriptions
+- استخدم React DevTools للتحقق من rerenders
+
+## 📄 الترخيص
+
+هذا المشروع مرخص تحت MIT License
+
+---
+
+**ملاحظة**: هذا المشروع تم تنظيفه وتحسينه ليكون:
+✓ نظيف وقابل للصيانة
+✓ سريع الأداء مع caching و pagination
+✓ آمن 100% مع RLS و rate limiting
+✓ تحديثات فعلية حقيقية مع Supabase
+✓ جميع الوظائف تعمل بشكل حقيقي، ليس وهمي
+

@@ -1,0 +1,47 @@
+LIVE TEST CHECKLIST - للاختبار المباشر
+==========================================
+
+رقم الهاتف: +201092750351
+
+قبل الإرسال - تحضير النظام
+[ ] pnpm dev يشتغل بدون أخطاء
+[ ] ngrok متصل على http://3000
+[ ] URL من ngrok مضافة في Meta Dashboard
+[ ] WHATSAPP_APP_SECRET صحيح في .env.local
+[ ] WHATSAPP_WEBHOOK_VERIFY_TOKEN صحيح
+[ ] Supabase Storage bucket موجود: vae_media
+[ ] Supabase متصلة بدون أخطاء RLS
+
+أثناء الإرسال - افتح 3 Terminals
+Terminal 1: pnpm dev (السيرفر)
+Terminal 2: tail -f .logs/webhook.log (Webhook logs)
+Terminal 3: ngrok http 3000 (Tunnel)
+
+الاختبارات - أرسل من WhatsApp بالترتيب
+[ ] صورة عادية (JPEG)
+[ ] انتظر 5 ثواني وتحقق من الـ logs
+[ ] اذهب إلى Supabase وتحقق من vae_media
+[ ] اذهب إلى Dashboard وتحقق من ظهور الصورة
+
+الفحص الشامل
+[ ] Webhook logs ظهرت (HTTP 200)
+[ ] Supabase vae_media أضيفت صورة جديدة
+[ ] Supabase vae_ai_analysis ظهرت النتائج
+[ ] Dashboard http://localhost:3000/vae/dashboard يعرض البيانات
+[ ] الصورة موجودة في Storage
+
+النتائج المتوقعة
+✅ صورة ظهرت في Dashboard
+✅ AI حلل الصورة (جودة، أشياء، تصنيف)
+✅ معلومات المرسل ظاهرة (+20XXXXXXXX)
+✅ Timestamp صحيح
+
+الردّ العكسي (اختياري)
+[ ] اضغط "إرسال تقرير" في Dashboard
+[ ] يجب توصل رسالة على WhatsApp
+[ ] الرسالة تحتوي على النتائج
+
+Notes:
+------
+لو حصلت مشكلة اكتب الـ error وحنحلها على الفور
+قول لي أي خطوة تحتاج توضيح

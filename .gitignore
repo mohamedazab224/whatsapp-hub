@@ -1,6 +1,6 @@
 # ملفات البيئة
 .env
-.env.local
+# .env.local
 !.env.example
 
 # ملفات Azure/AWS/GCP

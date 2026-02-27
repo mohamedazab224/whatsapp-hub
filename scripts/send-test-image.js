@@ -8,10 +8,10 @@
 const https = require('https')
 
 // المتغيرات المطلوبة
-const WHATSAPP_BUSINESS_PHONE_NUMBER_ID = process.env.WHATSAPP_BUSINESS_PHONE_NUMBER_ID
-const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
+const WHATSAPP_BUSINESS_PHONE_NUMBER_ID = process.env.WHATSAPP_BUSINESS_PHONE_NUMBER_ID || '527697617099639'
+const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || 'EAAKSz8EpkqkBQsXBhzQxBQZBRTBTHJw7AXDIxBN0C4nbkowhHJFRxw9dHdF0YqQq4UThgIOBzOmaxdjf0z2gUS2Xo1PQjgBMYW6ZCZAGYhwmMMbhUGTMt7DwXZA5KXeGXOToU1ZC6SQZAQpgXfxkvWjIgooqalM078zsnpWuEwtRBNcb4jUQQZBWn0ZCOGJnmwZDZD'
 const TEST_RECIPIENT_PHONE = '+201092750351' // الرقم الذي تريد الاختبار إليه
-const API_VERSION = process.env.WHATSAPP_API_VERSION || 'v21.0'
+const API_VERSION = process.env.WHATSAPP_API_VERSION || 'v24.0'
 
 console.log('🚀 اختبار حقيقي - إرسال صورة من WhatsApp')
 console.log('=====================================\n')
@@ -137,12 +137,12 @@ async function sendTestImage() {
 async function runTests() {
   try {
     console.log('📤 جاري إرسال الاختبارات...\n')
-    
+
     await sendTestMessage()
     await new Promise(resolve => setTimeout(resolve, 2000)) // انتظر 2 ثانية
-    
+
     await sendTestImage()
-    
+
     console.log('=====================================')
     console.log('✨ اختبار مكتمل بنجاح!\n')
     console.log('📍 الخطوات التالية:')
@@ -150,7 +150,7 @@ async function runTests() {
     console.log('  2. تحقق من استقبال الرسائل')
     console.log('  3. إذا استقبلت الرسائل، النظام يعمل بنجاح ✅')
     console.log('  4. الآن أرسل صورة/فيديو للنظام وسيتم معالجتها\n')
-    
+
   } catch (error) {
     console.error('❌ خطأ في الاختبار:')
     console.error(error.message)

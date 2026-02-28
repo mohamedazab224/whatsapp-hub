@@ -4,19 +4,12 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const geistSans = Geist({ subsets: ["latin"] })
+const geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "WhatsApp Hub - لوحة التحكم",
-  description: "منصة إدارة WhatsApp المتكاملة",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: "cover",
-  },
+  title: "WhatsApp Hub",
+  description: "WhatsApp Business Management Platform",
 }
 
 export default function RootLayout({
@@ -26,8 +19,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${_geist.className} font-sans antialiased`} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="whatsapp-hub-theme">
+      <head>
+        <meta name="theme-color" content="#ffffff" />
+      </head>
+      <body className={`${geistSans.className} antialiased`} suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           {children}
         </ThemeProvider>
       </body>

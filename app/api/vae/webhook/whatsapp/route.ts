@@ -132,6 +132,16 @@ async function handleMessage(message: any, phoneNumberId: string, projectId: str
 
         if (uploadData) {
           messageRecord.body = caption || "[صورة]"
+          
+          // حفظ في media_files
+          await supabase.from("media_files").insert({
+            message_id: messageId,
+            media_id: mediaId,
+            mime_type: "image/jpeg",
+            file_size: blob.size,
+            project_id: projectId,
+            public_url: mediaUrl,
+          })
         }
       }
     }
@@ -154,6 +164,16 @@ async function handleMessage(message: any, phoneNumberId: string, projectId: str
 
         if (uploadData) {
           messageRecord.body = caption || "[فيديو]"
+          
+          // حفظ في media_files
+          await supabase.from("media_files").insert({
+            message_id: messageId,
+            media_id: mediaId,
+            mime_type: "video/mp4",
+            file_size: blob.size,
+            project_id: projectId,
+            public_url: mediaUrl,
+          })
         }
       }
     }
@@ -161,12 +181,12 @@ async function handleMessage(message: any, phoneNumberId: string, projectId: str
     // معالجة المستندات
     if (messageType === "document" && message.document) {
       const mediaId = message.document.id
-      const filename = message.document.filename || "document"
+      const docFilename = message.document.filename || "document"
 
       const mediaUrl = await downloadMediaFromWhatsApp(mediaId)
 
       if (mediaUrl) {
-        const storagePath = `messages/${contactId}/${Date.now()}-${filename}`
+        const storagePath = `messages/${contactId}/${Date.now()}-${docFilename}`
         const response = await fetch(mediaUrl)
         const blob = await response.blob()
 
@@ -175,7 +195,47 @@ async function handleMessage(message: any, phoneNumberId: string, projectId: str
           .upload(storagePath, blob)
 
         if (uploadData) {
-          messageRecord.body = `[مستند: ${filename}]`
+          messageRecord.body = `[مستند: ${docFilename}]`
+          
+          // حفظ في media_files
+          await supabase.from("media_files").insert({
+            message_id: messageId,
+            media_id: mediaId,
+            mime_type: message.document.mime_type || "application/octet-stream",
+            file_size: blob.size,
+            project_id: projectId,
+            public_url: mediaUrl,
+          })
+        }
+      }
+    }
+
+    // معالجة الملفات الصوتية
+    if (messageType === "audio" && message.audio) {
+      const mediaId = message.audio.id
+      const mediaUrl = await downloadMediaFromWhatsApp(mediaId)
+
+      if (mediaUrl) {
+        const filename = `messages/${contactId}/${Date.now()}-${mediaId}.m4a`
+        const response = await fetch(mediaUrl)
+        const blob = await response.blob()
+
+        const { data: uploadData } = await supabase.storage
+          .from("whatsapp_media")
+          .upload(filename, blob)
+
+        if (uploadData) {
+          messageRecord.body = "[ملف صوتي]"
+          
+          // حفظ في media_files
+          await supabase.from("media_files").insert({
+            message_id: messageId,
+            media_id: mediaId,
+            mime_type: "audio/m4a",
+            file_size: blob.size,
+            project_id: projectId,
+            public_url: mediaUrl,
+          })
         }
       }
     }

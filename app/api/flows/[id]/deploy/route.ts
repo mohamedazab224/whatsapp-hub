@@ -6,10 +6,10 @@ const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id
+    const { id } = await params
 
     if (!ACCESS_TOKEN || !BUSINESS_ACCOUNT_ID) {
       return NextResponse.json({ error: 'Missing Meta configuration' }, { status: 500 })

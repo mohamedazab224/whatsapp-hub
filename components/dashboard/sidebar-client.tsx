@@ -62,6 +62,7 @@ const whatsappMenu = [
       { name: "اختبار صندوق الرمل", href: "/numbers/sandbox" },
     ],
   },
+  { name: "اختبار API", href: "/whatsapp/test", icon: Terminal },
   {
     name: "البيانات",
     href: "/data",

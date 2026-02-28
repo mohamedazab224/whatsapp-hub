@@ -76,7 +76,7 @@ export function LoginForm() {
 
       router.replace(nextPath)
     } catch (err) {
-      setErrorMessage("حدث خطأ أثناء تسجيل الدخول التجريبي")
+      setErrorMessage("خطأ في تسجيل الدخول")
       setIsSubmitting(false)
     }
   }

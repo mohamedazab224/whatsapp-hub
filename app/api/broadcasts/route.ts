@@ -73,10 +73,10 @@ export async function POST(request: Request) {
       .select()
       .single()
 
-    if (error) throw error
+    if (error || !data) throw error || new Error("Failed to create broadcast")
 
     // إضافة المستلمين
-    if (body.recipients && body.recipients.length > 0) {
+    if (body.recipients && body.recipients.length > 0 && data.id) {
       const recipients = body.recipients.map((contact_id: string) => ({
         broadcast_id: data.id,
         contact_id,

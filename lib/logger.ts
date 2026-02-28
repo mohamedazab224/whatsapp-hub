@@ -1,5 +1,3 @@
-import { getLoggerEnv } from "./env.server"
-
 type LogLevel = "debug" | "info" | "warn" | "error"
 
 const levelPriority: Record<LogLevel, number> = {
@@ -18,17 +16,13 @@ const levelToConsole: Record<LogLevel, (...args: unknown[]) => void> = {
 
 export type LogMeta = Record<string, unknown>
 
-let cachedLogLevel: LogLevel | null = null
+let cachedLogLevel: LogLevel = "info"
 
 const getLogLevel = (): LogLevel => {
-  if (cachedLogLevel) return cachedLogLevel
-  try {
-    cachedLogLevel = getLoggerEnv().LOG_LEVEL as LogLevel
-    return cachedLogLevel
-  } catch (error) {
-    console.warn("[Logger] Failed to get log level:", error)
-    return "info"
+  if (process.env.LOG_LEVEL && ["debug", "info", "warn", "error"].includes(process.env.LOG_LEVEL)) {
+    cachedLogLevel = process.env.LOG_LEVEL as LogLevel
   }
+  return cachedLogLevel
 }
 
 export const shouldLog = (level: LogLevel) => levelPriority[level] >= levelPriority[getLogLevel()]

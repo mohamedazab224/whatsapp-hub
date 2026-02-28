@@ -1,8 +1,12 @@
-import { getWhatsappApiEnv } from "./env.server"
-
 const getWhatsappConfig = () => {
-  const { WHATSAPP_API_VERSION, WHATSAPP_ACCESS_TOKEN } = getWhatsappApiEnv()
-  return { apiVersion: WHATSAPP_API_VERSION, accessToken: WHATSAPP_ACCESS_TOKEN }
+  const apiVersion = process.env.WHATSAPP_API_VERSION || "v24.0"
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN
+  
+  if (!accessToken) {
+    throw new Error("WHATSAPP_ACCESS_TOKEN is required")
+  }
+  
+  return { apiVersion, accessToken }
 }
 
 export type WhatsAppMediaInfo = {

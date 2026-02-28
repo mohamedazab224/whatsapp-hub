@@ -8,7 +8,7 @@
 const https = require('https')
 
 // المتغيرات المطلوبة
-const WHATSAPP_BUSINESS_PHONE_NUMBER_ID = process.env.WHATSAPP_BUSINESS_PHONE_NUMBER_ID || '527697617099639'
+const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '527697617099639'
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || 'EAAKSz8EpkqkBQsXBhzQxBQZBRTBTHJw7AXDIxBN0C4nbkowhHJFRxw9dHdF0YqQq4UThgIOBzOmaxdjf0z2gUS2Xo1PQjgBMYW6ZCZAGYhwmMMbhUGTMt7DwXZA5KXeGXOToU1ZC6SQZAQpgXfxkvWjIgooqalM078zsnpWuEwtRBNcb4jUQQZBWn0ZCOGJnmwZDZD'
 const TEST_RECIPIENT_PHONE = '+201092750351' // الرقم الذي تريد الاختبار إليه
 const API_VERSION = process.env.WHATSAPP_API_VERSION || 'v24.0'
@@ -17,8 +17,8 @@ console.log('🚀 اختبار حقيقي - إرسال صورة من WhatsApp')
 console.log('=====================================\n')
 
 // التحقق من المتغيرات
-if (!WHATSAPP_BUSINESS_PHONE_NUMBER_ID) {
-  console.error('❌ خطأ: WHATSAPP_BUSINESS_PHONE_NUMBER_ID غير موجود في .env.local')
+if (!WHATSAPP_PHONE_NUMBER_ID) {
+  console.error('❌ خطأ: WHATSAPP_PHONE_NUMBER_ID غير موجود في .env.local')
   process.exit(1)
 }
 
@@ -28,7 +28,7 @@ if (!WHATSAPP_ACCESS_TOKEN) {
 }
 
 console.log('✅ متغيرات البيئة موجودة')
-console.log(`📱 رقم المرسل: ${WHATSAPP_BUSINESS_PHONE_NUMBER_ID}`)
+console.log(`📱 رقم المرسل: ${WHATSAPP_PHONE_NUMBER_ID}`)
 console.log(`📞 رقم المستقبل: ${TEST_RECIPIENT_PHONE}`)
 console.log(`🔑 توكن: ${WHATSAPP_ACCESS_TOKEN.substring(0, 20)}...`)
 console.log(`📦 API Version: ${API_VERSION}\n`)
@@ -49,7 +49,7 @@ async function sendTestMessage() {
 
     const options = {
       hostname: 'graph.instagram.com',
-      path: `/${API_VERSION}/${WHATSAPP_BUSINESS_PHONE_NUMBER_ID}/messages`,
+      path: `/${API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
@@ -100,7 +100,7 @@ async function sendTestImage() {
 
     const options = {
       hostname: 'graph.instagram.com',
-      path: `/${API_VERSION}/${WHATSAPP_BUSINESS_PHONE_NUMBER_ID}/messages`,
+      path: `/${API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,

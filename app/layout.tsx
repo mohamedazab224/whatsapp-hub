@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
@@ -31,7 +30,6 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="whatsapp-hub-theme">
           {children}
         </ThemeProvider>
-        <Analytics />
       </body>
     </html>
   )

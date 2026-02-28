@@ -57,6 +57,30 @@ export function LoginForm() {
     }
   }
 
+  const handleDemoLogin = async () => {
+    setErrorMessage(null)
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch("/api/auth/demo-login", {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setErrorMessage(data.error || "فشل تسجيل الدخول التجريبي")
+        setIsSubmitting(false)
+        return
+      }
+
+      router.replace(nextPath)
+    } catch (err) {
+      setErrorMessage("حدث خطأ أثناء تسجيل الدخول التجريبي")
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-sm">
       <div className="space-y-2 text-center">
@@ -111,15 +135,27 @@ export function LoginForm() {
         </div>
       </div>
 
-      <Button 
-        variant="outline" 
-        className="w-full" 
-        type="button" 
-        onClick={handleGoogleLogin}
-        disabled={isSubmitting}
-      >
-        تسجيل الدخول عبر Google
-      </Button>
+      <div className="space-y-2">
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          type="button" 
+          onClick={handleGoogleLogin}
+          disabled={isSubmitting}
+        >
+          تسجيل الدخول عبر Google
+        </Button>
+
+        <Button 
+          variant="secondary" 
+          className="w-full" 
+          type="button" 
+          onClick={handleDemoLogin}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "جارٍ الدخول..." : "تسجيل دخول تجريبي"}
+        </Button>
+      </div>
     </div>
   )
 }

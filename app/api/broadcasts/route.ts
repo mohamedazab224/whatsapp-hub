@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     // إضافة المستلمين
     if (body.recipients && body.recipients.length > 0 && data && typeof data === "object" && "id" in data) {
-      const broadcastId = (data as { id: string }).id
+      const broadcastId = (data as { id: string }).id!
       const recipients = body.recipients.map((contact_id: string) => ({
         broadcast_id: broadcastId,
         contact_id,

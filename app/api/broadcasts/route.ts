@@ -70,10 +70,10 @@ export async function POST(request: Request) {
         status: "draft",
         created_by: user.id,
       })
-      .select()
+      .select("id")
       .single()
 
-    if (error) throw error
+    if (error || !data) throw error
 
     // إضافة المستلمين
     if (body.recipients && body.recipients.length > 0) {

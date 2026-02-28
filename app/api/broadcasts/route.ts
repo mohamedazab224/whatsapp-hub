@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     if (error || !data) throw error
 
     // إضافة المستلمين
-    if (body.recipients && body.recipients.length > 0) {
+    if (body.recipients && body.recipients.length > 0 && data.id) {
       const recipients = body.recipients.map((contact_id: string) => ({
         broadcast_id: data.id,
         contact_id,

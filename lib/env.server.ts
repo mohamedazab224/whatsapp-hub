@@ -110,3 +110,22 @@ export const getQueueEnv = (): QueueEnv => {
   cachedQueueEnv = parsed.data
   return cachedQueueEnv
 }
+
+// Auth Environment (Basic Auth)
+const authEnvSchema = z.object({
+  BASIC_AUTH_USERS: z.string().default(""),
+})
+
+export type AuthEnv = z.infer<typeof authEnvSchema>
+
+let cachedAuthEnv: AuthEnv | null = null
+
+export const getAuthEnv = (): AuthEnv => {
+  if (cachedAuthEnv) return cachedAuthEnv
+  const parsed = authEnvSchema.safeParse(process.env)
+  if (!parsed.success) {
+    console.warn("Invalid auth environment, using defaults:", parsed.error.issues)
+  }
+  cachedAuthEnv = parsed.data || authEnvSchema.parse({})
+  return cachedAuthEnv
+}

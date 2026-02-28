@@ -10,7 +10,8 @@
     "test": "tsx --test tests/*.test.ts",
     "clean": "rm -rf .next .turbo dist build out .cache .eslintcache error.txt fix-notes.txt node_modules pnpm-lock.yaml",
     "rebuild": "npm run clean && npm install && npm run build",
-    "setup-demo": "node scripts/setup-demo-user.js"
+    "setup-demo": "node scripts/setup-demo-user.js",
+    "send-test": "node scripts/send-test-message.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

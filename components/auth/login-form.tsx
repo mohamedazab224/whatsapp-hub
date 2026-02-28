@@ -71,13 +71,17 @@ export function LoginForm() {
       if (!response.ok) {
         setErrorMessage(data.error || "فشل تسجيل الدخول التجريبي")
         setIsSubmitting(false)
+        console.error("[v0] Demo login failed:", data.error)
         return
       }
 
+      console.log("[v0] Demo login successful, redirecting...")
       router.replace(nextPath)
     } catch (err) {
-      setErrorMessage("حدث خطأ أثناء تسجيل الدخول التجريبي")
+      const errorMsg = err instanceof Error ? err.message : "خطأ غير متوقع"
+      setErrorMessage(`خطأ في تسجيل الدخول التجريبي: ${errorMsg}`)
       setIsSubmitting(false)
+      console.error("[v0] Demo login exception:", err)
     }
   }
 

@@ -3,10 +3,10 @@ import crypto from 'crypto'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id
+    const { id } = await params
 
     // توليد مفاتيح تشفير
     const encryptionKey = crypto.randomBytes(32).toString('hex')

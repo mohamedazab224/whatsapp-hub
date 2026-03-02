@@ -75,11 +75,12 @@ export async function POST(request: Request) {
 
     if (error || !data) throw error || new Error("Failed to create broadcast")
 
+    const broadcastData = data as { id: string }
+
     // إضافة المستلمين
-    if (body.recipients && body.recipients.length > 0 && data && typeof data === "object" && "id" in data) {
-      const broadcastId = (data as { id: string }).id!
+    if (body.recipients && body.recipients.length > 0) {
       const recipients = body.recipients.map((contact_id: string) => ({
-        broadcast_id: broadcastId,
+        broadcast_id: broadcastData.id,
         contact_id,
         status: "pending",
       }))
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
       await supabase
         .from("broadcasts")
         .update({ total_recipients: body.recipients.length })
-        .eq("id", broadcastId)
+        .eq("id", broadcastData.id)
     }
 
     return NextResponse.json(data, { status: 201 })

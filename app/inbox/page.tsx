@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -13,15 +13,27 @@ import { formatDistanceToNow } from "date-fns"
 import { ar } from "date-fns/locale"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export default function InboxPage() {
+function InboxContent() {
   const [selectedContact, setSelectedContact] = useState<any>(null)
   const [messageText, setMessageText] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [error, setError] = useState<string | null>(null)
   
-  const { contacts, isLoading: contactsLoading } = useContactsRealtime()
-  const { messages, mutate: mutateMessages } = useMessages({ 
+  const { contacts, isLoading: contactsLoading, error: contactsError } = useContactsRealtime()
+  const { messages = [], mutate: mutateMessages, error: messagesError } = useMessages({ 
     contact_id: selectedContact?.id 
   })
+
+  // Handle errors
+  useEffect(() => {
+    if (contactsError) {
+      setError("Failed to load contacts. Please check your project setup.")
+    } else if (messagesError) {
+      setError("Failed to load messages. Please try again.")
+    } else {
+      setError(null)
+    }
+  }, [contactsError, messagesError])
 
   // Auto-select first contact
   useEffect(() => {
@@ -51,6 +63,25 @@ export default function InboxPage() {
     } catch (error) {
       console.error('Failed to send message:', error)
     }
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen bg-background overflow-hidden text-right" dir="rtl">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <p className="text-red-500 font-medium">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()}
+              variant="outline"
+            >
+              إعادة تحميل
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -318,6 +349,28 @@ export default function InboxPage() {
           </Tabs>
         </div>
       )}
+    </div>
+  )
+}
+
+export default function InboxPage() {
+  return (
+    <Suspense fallback={<InboxLoadingFallback />}>
+      <InboxContent />
+    </Suspense>
+  )
+}
+
+function InboxLoadingFallback() {
+  return (
+    <div className="flex h-screen bg-background overflow-hidden text-right" dir="rtl">
+      <Sidebar />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">جاري التحميل...</p>
+        </div>
+      </div>
     </div>
   )
 }

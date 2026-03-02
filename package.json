@@ -12,8 +12,7 @@
     "rebuild": "npm run clean && npm install && npm run build",
     "setup-demo": "node scripts/setup-demo-user.js",
     "send-test": "node scripts/send-test-message.js",
-    "sync-meta": "node scripts/sync-meta-data.js",
-    "db:create-meta-tables": "psql $DATABASE_URL -f scripts/create-meta-tables.sql"
+    "import-meta": "node scripts/import-meta-data.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -1,316 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import crypto from "crypto"
+import { verifyWebhookSignature, processWhatsAppWebhook, forwardToVAE } from "@/lib/middleware/whatsapp-webhook-receiver"
+import { routeMessage, MessageContext } from "@/lib/middleware/flow-router"
+import { createSupabaseAdminClient } from "@/lib/supabase/server"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false },
-})
-
-// التحقق من توقيع WhatsApp
-function verifyWhatsAppSignature(req: NextRequest, body: string): boolean {
-  const signature = req.headers.get("x-hub-signature-256")
-  if (!signature) return false
-
-  const appSecret = process.env.WHATSAPP_APP_SECRET!
-  const hash = crypto.createHmac("sha256", appSecret).update(body).digest("hex")
-  const expected = `sha256=${hash}`
-
-  return signature === expected
-}
-
-// معالجة الرسائل الواردة من WhatsApp
-async function handleMessage(message: any, phoneNumberId: string, projectId: string) {
-  try {
-    const senderPhone = message.from
-    const messageId = message.id
-    const timestamp = new Date(parseInt(message.timestamp) * 1000)
-    const messageType = message.type
-
-    // التأكد من وجود جهة الاتصال أو إنشاء واحدة جديدة
-    let contact = await supabase
-      .from("contacts")
-      .select("*")
-      .eq("wa_id", senderPhone)
-      .eq("project_id", projectId)
-      .single()
-
-    if (contact.error) {
-      const { data: newContact } = await supabase
-        .from("contacts")
-        .insert({
-          wa_id: senderPhone,
-          project_id: projectId,
-          whatsapp_number_id: phoneNumberId,
-          name: `Contact ${senderPhone.slice(-4)}`,
-          status: "active",
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
-
-      contact.data = newContact
-    } else {
-      await supabase
-        .from("contacts")
-        .update({ last_message_at: timestamp.toISOString() })
-        .eq("id", contact.data.id)
-    }
-
-    const contactId = contact.data?.id
-
-    // التأكد من وجود محادثة أو إنشاء واحدة جديدة
-    let conversation = await supabase
-      .from("conversations")
-      .select("*")
-      .eq("contact_id", contactId)
-      .eq("project_id", projectId)
-      .single()
-
-    if (conversation.error) {
-      const { data: newConversation } = await supabase
-        .from("conversations")
-        .insert({
-          contact_id: contactId,
-          project_id: projectId,
-          whatsapp_number_id: phoneNumberId,
-          status: "open",
-          unread_count: 1,
-          created_at: new Date().toISOString(),
-          last_message_at: timestamp.toISOString(),
-        })
-        .select()
-        .single()
-
-      conversation.data = newConversation
-    } else {
-      await supabase
-        .from("conversations")
-        .update({
-          unread_count: (conversation.data?.unread_count || 0) + 1,
-          last_message_at: timestamp.toISOString(),
-        })
-        .eq("id", conversation.data.id)
-    }
-
-    // حفظ الرسالة
-    let messageRecord: any = {
-      wamid: messageId,
-      contact_id: contactId,
-      project_id: projectId,
-      whatsapp_number_id: phoneNumberId,
-      from_phone_id: senderPhone,
-      direction: "inbound",
-      status: "received",
-      type: messageType,
-      timestamp: timestamp.toISOString(),
-      created_at: new Date().toISOString(),
-    }
-
-    // معالجة النص
-    if (messageType === "text" && message.text) {
-      messageRecord.body = message.text.body
-    }
-
-    // معالجة الصور
-    if (messageType === "image" && message.image) {
-      const mediaId = message.image.id
-      const caption = message.image.caption || ""
-
-      const mediaUrl = await downloadMediaFromWhatsApp(mediaId)
-
-      if (mediaUrl) {
-        const filename = `messages/${contactId}/${Date.now()}-${mediaId}.jpg`
-        const response = await fetch(mediaUrl)
-        const blob = await response.blob()
-
-        const { data: uploadData } = await supabase.storage
-          .from("whatsapp_media")
-          .upload(filename, blob)
-
-        if (uploadData) {
-          messageRecord.body = caption || "[صورة]"
-          
-          // حفظ في media_files
-          await supabase.from("media_files").insert({
-            message_id: messageId,
-            media_id: mediaId,
-            mime_type: "image/jpeg",
-            file_size: blob.size,
-            project_id: projectId,
-            public_url: mediaUrl,
-          })
-        }
-      }
-    }
-
-    // معالجة الفيديوهات
-    if (messageType === "video" && message.video) {
-      const mediaId = message.video.id
-      const caption = message.video.caption || ""
-
-      const mediaUrl = await downloadMediaFromWhatsApp(mediaId)
-
-      if (mediaUrl) {
-        const filename = `messages/${contactId}/${Date.now()}-${mediaId}.mp4`
-        const response = await fetch(mediaUrl)
-        const blob = await response.blob()
-
-        const { data: uploadData } = await supabase.storage
-          .from("whatsapp_media")
-          .upload(filename, blob)
-
-        if (uploadData) {
-          messageRecord.body = caption || "[فيديو]"
-          
-          // حفظ في media_files
-          await supabase.from("media_files").insert({
-            message_id: messageId,
-            media_id: mediaId,
-            mime_type: "video/mp4",
-            file_size: blob.size,
-            project_id: projectId,
-            public_url: mediaUrl,
-          })
-        }
-      }
-    }
-
-    // معالجة المستندات
-    if (messageType === "document" && message.document) {
-      const mediaId = message.document.id
-      const docFilename = message.document.filename || "document"
-
-      const mediaUrl = await downloadMediaFromWhatsApp(mediaId)
-
-      if (mediaUrl) {
-        const storagePath = `messages/${contactId}/${Date.now()}-${docFilename}`
-        const response = await fetch(mediaUrl)
-        const blob = await response.blob()
-
-        const { data: uploadData } = await supabase.storage
-          .from("whatsapp_media")
-          .upload(storagePath, blob)
-
-        if (uploadData) {
-          messageRecord.body = `[مستند: ${docFilename}]`
-          
-          // حفظ في media_files
-          await supabase.from("media_files").insert({
-            message_id: messageId,
-            media_id: mediaId,
-            mime_type: message.document.mime_type || "application/octet-stream",
-            file_size: blob.size,
-            project_id: projectId,
-            public_url: mediaUrl,
-          })
-        }
-      }
-    }
-
-    // معالجة الملفات الصوتية
-    if (messageType === "audio" && message.audio) {
-      const mediaId = message.audio.id
-      const mediaUrl = await downloadMediaFromWhatsApp(mediaId)
-
-      if (mediaUrl) {
-        const filename = `messages/${contactId}/${Date.now()}-${mediaId}.m4a`
-        const response = await fetch(mediaUrl)
-        const blob = await response.blob()
-
-        const { data: uploadData } = await supabase.storage
-          .from("whatsapp_media")
-          .upload(filename, blob)
-
-        if (uploadData) {
-          messageRecord.body = "[ملف صوتي]"
-          
-          // حفظ في media_files
-          await supabase.from("media_files").insert({
-            message_id: messageId,
-            media_id: mediaId,
-            mime_type: "audio/m4a",
-            file_size: blob.size,
-            project_id: projectId,
-            public_url: mediaUrl,
-          })
-        }
-      }
-    }
-
-    // حفظ الرسالة في قاعدة البيانات
-    const { data: savedMessage, error: messageError } = await supabase
-      .from("messages")
-      .insert(messageRecord)
-      .select()
-      .single()
-
-    if (messageError) {
-      console.error("Error saving message:", messageError)
-    }
-
-    return { success: true, messageId: savedMessage?.id }
-  } catch (error) {
-    console.error("Error handling message:", error)
-    return { success: false, error: error }
-  }
-}
-
-// معالجة تحديثات الحالة
-async function handleStatusUpdate(update: any, projectId: string) {
-  try {
-    const { wamid, status, timestamp } = update
-
-    const { error } = await supabase
-      .from("messages")
-      .update({
-        status: status,
-        timestamp: new Date(parseInt(timestamp) * 1000).toISOString(),
-      })
-      .eq("wamid", wamid)
-      .eq("project_id", projectId)
-
-    if (error) {
-      console.error("Error updating message status:", error)
-    }
-
-    return { success: true }
-  } catch (error) {
-    console.error("Error handling status update:", error)
-    return { success: false, error }
-  }
-}
-
-// تحميل الملف من WhatsApp
-async function downloadMediaFromWhatsApp(mediaId: string): Promise<string | null> {
-  try {
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN
-    const apiVersion = process.env.WHATSAPP_API_VERSION || "v24.0"
-
-    const response = await fetch(
-      `https://graph.instagram.com/${apiVersion}/${mediaId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    )
-
-    const data = await response.json()
-
-    if (!data.url) {
-      console.error("No URL in media response:", data)
-      return null
-    }
-
-    return data.url
-  } catch (error) {
-    console.error("Error downloading media from WhatsApp:", error)
-    return null
-  }
-}
+/**
+ * WhatsApp Business API Webhook Handler
+ * Main entry point that integrates with:
+ * - Webhook receiver (signature verification, event processing)
+ * - Flow router (message routing to VAE flows)
+ * - Media handling (downloads and storage)
+ * - Contact & conversation management
+ */
 
 // POST request - استقبال الرسائل
 export async function POST(request: NextRequest) {
@@ -318,74 +18,158 @@ export async function POST(request: NextRequest) {
     const bodyText = await request.text()
     const body = JSON.parse(bodyText)
 
-    // التحقق من التوقيع
-    if (!verifyWhatsAppSignature(request, bodyText)) {
-      console.warn("Invalid WhatsApp signature")
+    // Verify WhatsApp signature
+    const signature = request.headers.get("x-hub-signature-256") || ""
+    const appSecret = process.env.WHATSAPP_APP_SECRET
+
+    if (!appSecret) {
+      console.error("[v0] WHATSAPP_APP_SECRET not configured")
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
+    }
+
+    const isValid = await verifyWebhookSignature(bodyText, signature, appSecret)
+    if (!isValid) {
+      console.warn("[v0] Invalid webhook signature")
       return NextResponse.json({ error: "Invalid signature" }, { status: 403 })
     }
 
+    // Process webhook through middleware pipeline
     const entries = body.entry || []
+    const admin = createSupabaseAdminClient()
+    let totalProcessed = 0
 
     for (const entry of entries) {
       const changes = entry.changes || []
 
       for (const change of changes) {
         const value = change.value
-
         const phoneNumberId = value.metadata?.phone_number_id
 
-        const { data: whatsappNumber } = await supabase
+        // Get project for this phone number
+        const { data: whatsappNumber, error: numberError } = await admin
           .from("whatsapp_numbers")
           .select("project_id")
           .eq("phone_number_id", phoneNumberId)
-          .single()
+          .maybeSingle()
 
-        const projectId = whatsappNumber?.project_id
-
-        if (!projectId) {
-          console.warn("No project found for phone number:", phoneNumberId)
+        if (numberError || !whatsappNumber) {
+          console.warn(`[v0] Phone number not found: ${phoneNumberId}`)
           continue
         }
 
-        // معالجة الرسائل
-        const messages = value.messages || []
-        for (const message of messages) {
-          await handleMessage(message, phoneNumberId, projectId)
+        const projectId = whatsappNumber.project_id
+
+        // Process messages through webhook receiver
+        const result = await processWhatsAppWebhook(body, phoneNumberId)
+
+        if (!result.success) {
+          console.error(`[v0] Webhook processing failed:`, result.errors)
+          continue
         }
 
-        // معالجة تحديثات الحالة
-        const statuses = value.statuses || []
-        for (const status of statuses) {
-          await handleStatusUpdate(status, projectId)
+        totalProcessed += result.processedEvents
+
+        // Route messages to appropriate flows
+        if (value.messages) {
+          for (const message of value.messages) {
+            try {
+              // Get contact info
+              const { data: contact } = await admin
+                .from("contacts")
+                .select("id, name")
+                .eq("wa_id", message.from)
+                .eq("project_id", projectId)
+                .maybeSingle()
+
+              if (!contact) continue
+
+              // Create routing context
+              const routingContext: MessageContext = {
+                projectId,
+                contactId: contact.id,
+                phoneNumberId,
+                messageBody: message.text?.body || "[Non-text message]",
+                messageType: message.type as any,
+                senderPhone: message.from,
+              }
+
+              // Route the message
+              const routing = await routeMessage(routingContext)
+
+              if (routing.shouldRoute && routing.targetFlow) {
+                console.log(`[v0] Routing message to flow: ${routing.targetFlow}`)
+
+                // Forward to VAE for processing
+                await forwardToVAE(projectId, "message", {
+                  contact_id: contact.id,
+                  message_type: message.type,
+                  body: message.text?.body,
+                  flow: routing.targetFlow,
+                  timestamp: new Date().toISOString(),
+                })
+              }
+            } catch (error) {
+              console.error(`[v0] Error routing message:`, error)
+            }
+          }
+        }
+
+        // Handle status updates
+        if (value.statuses) {
+          for (const status of value.statuses) {
+            try {
+              await admin
+                .from("messages")
+                .update({ status: status.status })
+                .eq("wamid", status.id)
+                .eq("project_id", projectId)
+            } catch (error) {
+              console.error(`[v0] Error updating message status:`, error)
+            }
+          }
         }
       }
     }
 
-    return NextResponse.json({ ok: true })
+    console.log(`[v0] Webhook processed ${totalProcessed} events`)
+
+    return NextResponse.json({
+      ok: true,
+      processed: totalProcessed,
+    })
   } catch (error) {
-    console.error("Error processing webhook:", error)
-    return NextResponse.json({ error: "Failed to process webhook" }, { status: 500 })
+    console.error("[v0] Webhook error:", error)
+    return NextResponse.json(
+      { error: "Processing failed", message: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    )
   }
 }
 
-// GET request - التحقق من Webhook
+// GET request - Webhook verification
 export async function GET(request: NextRequest) {
   try {
     const mode = request.nextUrl.searchParams.get("hub.mode")
     const token = request.nextUrl.searchParams.get("hub.verify_token")
     const challenge = request.nextUrl.searchParams.get("hub.challenge")
 
-    const verifyToken = process.env.VERIFY_TOKEN
+    const verifyToken = process.env.VERIFY_TOKEN || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
 
-    if (mode === "subscribe" && token === verifyToken) {
-      console.log("Webhook verified successfully")
-      return NextResponse.json(challenge)
+    if (!verifyToken) {
+      console.error("[v0] VERIFY_TOKEN not configured")
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
     }
 
-    console.warn("Webhook verification failed - invalid token or mode")
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (mode === "subscribe" && token === verifyToken && challenge) {
+      console.log("[v0] Webhook verified successfully")
+      return new NextResponse(challenge, { status: 200 })
+    }
+
+    console.warn("[v0] Webhook verification failed")
+    return NextResponse.json({ error: "Verification failed" }, { status: 403 })
   } catch (error) {
-    console.error("Error verifying webhook:", error)
+    console.error("[v0] Verification error:", error)
     return NextResponse.json({ error: "Verification failed" }, { status: 500 })
   }
 }
+

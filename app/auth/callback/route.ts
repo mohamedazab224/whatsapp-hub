@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
+import { createSupabaseAdminClient } from "@/lib/supabase/server"
 import { getPublicEnv } from "@/lib/env.public"
 
 export async function GET(request: NextRequest) {
@@ -38,17 +39,24 @@ export async function GET(request: NextRequest) {
 
   console.log("[v0] Auth callback - User:", user.id)
 
+  // Use admin client for project creation (has permission to create)
+  const adminClient = createSupabaseAdminClient()
+
   // Check if user has a project
-  const { data: existingProject } = await supabase
+  const { data: existingProject, error: checkError } = await adminClient
     .from("projects")
     .select("id")
     .eq("owner_id", user.id)
     .maybeSingle()
 
+  if (checkError) {
+    console.error("[v0] Error checking project:", checkError)
+  }
+
   if (!existingProject) {
-    // Create a default project for the user
+    // Create a default project for the user using admin client
     console.log("[v0] Creating default project for user:", user.id)
-    const { data: newProject, error: projectError } = await supabase
+    const { data: newProject, error: projectError } = await adminClient
       .from("projects")
       .insert({
         owner_id: user.id,
@@ -69,4 +77,5 @@ export async function GET(request: NextRequest) {
 
   return response
 }
+
 

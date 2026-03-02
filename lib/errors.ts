@@ -39,8 +39,20 @@ export class ForbiddenError extends ApiError {
 
 export function logError(context: string, error: any) {
   const timestamp = new Date().toISOString()
-  const errorMsg = error instanceof Error ? error.message : String(error)
-  const errorStack = error instanceof Error ? error.stack : ""
+  
+  let errorMsg = ""
+  let errorStack = ""
+  
+  if (error instanceof Error) {
+    errorMsg = error.message
+    errorStack = error.stack || ""
+  } else if (typeof error === "object" && error !== null) {
+    // Handle Supabase or other object errors
+    errorMsg = error.message || error.error_description || JSON.stringify(error)
+    errorStack = error.stack || ""
+  } else {
+    errorMsg = String(error)
+  }
 
   console.error(`[${timestamp}] [ERROR] [${context}]`, {
     message: errorMsg,

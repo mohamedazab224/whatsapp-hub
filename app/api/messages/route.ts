@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { logError, logInfo, logWarn, UnauthorizedError, ValidationError } from "@/lib/errors"
+import { handleSupabaseError } from "@/lib/supabase/error-handler"
 
 export async function GET(request: Request) {
   try {
@@ -36,12 +37,20 @@ export async function GET(request: Request) {
       .order("timestamp", { ascending: false })
       .range(from, to)
 
-    const { count: totalMessages } = await supabase
+    const { count: totalMessages, error: countError } = await supabase
       .from("messages")
       .select("*", { count: "exact", head: true })
       .eq("project_id", user.id)
 
-    if (messagesError) throw messagesError
+    if (messagesError) {
+      logError("API:GET /api/messages", messagesError)
+      throw messagesError
+    }
+
+    if (countError) {
+      logError("API:GET /api/messages", countError)
+      throw countError
+    }
 
     logInfo("API:GET /api/messages", `Retrieved ${messages?.length || 0} messages`)
 
@@ -59,8 +68,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
     
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+
+    const errorMsg = error instanceof Error ? error.message : handleSupabaseError(error, "GET /api/messages")
     return NextResponse.json(
-      { error: "Failed to fetch messages" },
+      { error: errorMsg || "Failed to fetch messages" },
       { status: 500 }
     )
   }
@@ -99,7 +113,10 @@ export async function POST(request: Request) {
       })
       .select()
 
-    if (error) throw error
+    if (error) {
+      logError("API:POST /api/messages", error)
+      throw error
+    }
 
     logInfo("API:POST /api/messages", "Message created successfully")
 
@@ -114,9 +131,10 @@ export async function POST(request: Request) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-    
+
+    const errorMsg = error instanceof Error ? error.message : handleSupabaseError(error, "POST /api/messages")
     return NextResponse.json(
-      { error: "Failed to create message" },
+      { error: errorMsg || "Failed to create message" },
       { status: 500 }
     )
   }

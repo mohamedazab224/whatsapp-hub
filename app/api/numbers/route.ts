@@ -20,7 +20,7 @@ export async function GET() {
       .from("projects")
       .select("id")
       .eq("owner_id", user.id)
-      .single()
+      .maybeSingle()
 
     if (projectError || !project) {
       logError("API:GET /api/numbers", projectError || "No project found")
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
       .from("projects")
       .select("id")
       .eq("owner_id", user.id)
-      .single()
+      .maybeSingle()
 
     if (projectError || !project) {
       logError("API:POST /api/numbers", projectError || "No project found")

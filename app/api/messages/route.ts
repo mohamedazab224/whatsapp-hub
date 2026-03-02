@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       .from("projects")
       .select("id")
       .eq("owner_id", user.id)
-      .single()
+      .maybeSingle()
 
     if (projectError || !project) {
       logError("API:GET /api/messages", projectError || "No project found")
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       .from("projects")
       .select("id")
       .eq("owner_id", user.id)
-      .single()
+      .maybeSingle()
 
     if (projectError || !project) {
       logError("API:POST /api/messages", projectError || "No project found")

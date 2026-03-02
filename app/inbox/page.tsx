@@ -18,29 +18,55 @@ function InboxContent() {
   const [messageText, setMessageText] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [shouldRedirect, setShouldRedirect] = useState(false)
   
   const { contacts, isLoading: contactsLoading, error: contactsError } = useContactsRealtime()
   const { messages = [], mutate: mutateMessages, error: messagesError } = useMessages({ 
     contact_id: selectedContact?.id 
   })
 
-  // Handle errors
+  // Check if user has a project on mount
   useEffect(() => {
-    if (contactsError) {
-      setError("Failed to load contacts. Please check your project setup.")
-    } else if (messagesError) {
-      setError("Failed to load messages. Please try again.")
-    } else {
-      setError(null)
+    const checkProject = async () => {
+      try {
+        const response = await fetch("/api/project/check")
+        const data = await response.json()
+        
+        if (!data.hasProject) {
+          console.log("[v0] No project found, redirecting to init")
+          setShouldRedirect(true)
+        }
+      } catch (error) {
+        console.error("[v0] Project check error:", error)
+      }
     }
-  }, [contactsError, messagesError])
 
-  // Auto-select first contact
+    checkProject()
+  }, [])
+
+  if (shouldRedirect) {
+    return (
+      <div className="flex h-screen bg-background overflow-hidden text-right" dir="rtl">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-muted-foreground">جاري إعادة التوجيه...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Redirect effect
   useEffect(() => {
-    if (contacts.length > 0 && !selectedContact) {
-      setSelectedContact(contacts[0])
+    if (shouldRedirect) {
+      const timer = setTimeout(() => {
+        window.location.href = "/init"
+      }, 500)
+      return () => clearTimeout(timer)
     }
-  }, [contacts, selectedContact])
+  }, [shouldRedirect])
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return

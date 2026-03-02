@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { logInfo, logError } from "@/lib/errors"
 
+// Complete Meta data with all WABAs, phones, and templates from meta_all.json
 const META_ALL_DATA = {
   "meta": {
     "app_id": "889346333913449",
@@ -67,7 +68,16 @@ const META_ALL_DATA = {
         }
       ],
       "templates": [],
-      "apps": [],
+      "apps": [
+        {
+          "whatsapp_business_api_data": {
+            "category": "أعمال",
+            "link": "https://business.facebook.com/bizkit/home",
+            "name": "BizWeb",
+            "id": "514771569228061"
+          }
+        }
+      ],
       "webhooks": null
     },
     {
@@ -89,8 +99,67 @@ const META_ALL_DATA = {
           "account_mode": "LIVE"
         }
       ],
-      "templates": [],
-      "apps": [],
+      "templates": [
+        {
+          "name": "hello",
+          "parameter_format": "POSITIONAL",
+          "components": [
+            {
+              "type": "BODY",
+              "text": "Hello world!"
+            },
+            {
+              "type": "BUTTONS",
+              "buttons": [
+                {
+                  "type": "FLOW",
+                  "text": "View Flow",
+                  "flow_id": 1946584099618562,
+                  "flow_action": "NAVIGATE",
+                  "navigate_screen": "SELECT_BRANCH"
+                }
+              ]
+            }
+          ],
+          "language": "en",
+          "status": "APPROVED",
+          "category": "MARKETING",
+          "sub_category": "FORM",
+          "id": "1567295111152491"
+        },
+        {
+          "name": "installation_complete",
+          "parameter_format": "POSITIONAL",
+          "components": [
+            {
+              "type": "HEADER",
+              "format": "TEXT",
+              "text": "Installation complete"
+            },
+            {
+              "type": "BODY",
+              "text": "Hi {{1}}, your {{2}} installation is complete! Our technician has configured your connection, and you're now ready to go online. If you have any issues, feel free to reply or contact {{3}} for assistance.",
+              "example": {
+                "body_text": [["John", "Fibre Broadband", "support@telco.com"]]
+              }
+            }
+          ],
+          "language": "en_US",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "installation_complete",
+          "id": "955131554138421"
+        }
+      ],
+      "apps": [
+        {
+          "whatsapp_business_api_data": {
+            "link": "https://www.facebook.com/games/?app_id=1087358919742996",
+            "name": "Kapso",
+            "id": "1087358919742996"
+          }
+        }
+      ],
       "webhooks": null
     },
     {
@@ -113,6 +182,75 @@ const META_ALL_DATA = {
       ],
       "templates": [],
       "apps": [],
+      "webhooks": null
+    },
+    {
+      "id": "1198849982358674",
+      "info": {
+        "id": "1198849982358674",
+        "name": "UberFix",
+        "currency": "USD",
+        "timezone_id": "53",
+        "message_template_namespace": "f19f81d5_0560_4503_910e_3ff62b5e215b"
+      },
+      "phones": [],
+      "templates": [
+        {
+          "name": "scheduling",
+          "parameter_format": "POSITIONAL",
+          "language": "en_US",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "appointment_scheduling",
+          "id": "2213016016171976"
+        },
+        {
+          "name": "reminder",
+          "parameter_format": "POSITIONAL",
+          "language": "en_US",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "appointment_reminder",
+          "id": "902485578942321"
+        },
+        {
+          "name": "appointment",
+          "parameter_format": "POSITIONAL",
+          "language": "en_US",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "appointment_cancelled",
+          "id": "899296955837400"
+        },
+        {
+          "name": "appointment_confirmation_1",
+          "parameter_format": "POSITIONAL",
+          "language": "ar",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "sub_category": "CUSTOM",
+          "id": "1424480052385807"
+        },
+        {
+          "name": "order_management_4",
+          "parameter_format": "POSITIONAL",
+          "language": "ar",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "order_management_4",
+          "id": "2040184413495846"
+        }
+      ],
+      "apps": [
+        {
+          "whatsapp_business_api_data": {
+            "link": "http://www.jotform.com/",
+            "name": "Jotform Agent",
+            "id": "1102773744861735"
+          },
+          "override_callback_uri": "https://api.jotform.com/ai-agent-builder/0199bc57304276d986cb2f60ce5418702d89/webhook"
+        }
+      ],
       "webhooks": null
     },
     {
@@ -142,7 +280,62 @@ const META_ALL_DATA = {
           "account_mode": "LIVE"
         }
       ],
-      "templates": [],
+      "templates": [
+        {
+          "name": "uberone",
+          "parameter_format": "POSITIONAL",
+          "language": "en_US",
+          "status": "APPROVED",
+          "category": "MARKETING",
+          "sub_category": "FORM",
+          "id": "1550461489580784"
+        },
+        {
+          "name": "missed_appointment",
+          "parameter_format": "POSITIONAL",
+          "language": "ar",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "missed_appointment",
+          "id": "2036635873734786"
+        },
+        {
+          "name": "appointment_scheduling",
+          "parameter_format": "POSITIONAL",
+          "language": "ar",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "appointment_scheduling",
+          "id": "925222166624859"
+        },
+        {
+          "name": "appointment_confirmed",
+          "parameter_format": "POSITIONAL",
+          "language": "ar",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "appointment_confirmed",
+          "id": "1443910377115321"
+        },
+        {
+          "name": "appointment_cancellation",
+          "parameter_format": "POSITIONAL",
+          "language": "ar",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "library_template_name": "appointment_cancellation_1",
+          "id": "1781092799228487"
+        },
+        {
+          "name": "delivery_code",
+          "message_send_ttl_seconds": 600,
+          "parameter_format": "POSITIONAL",
+          "language": "en_US",
+          "status": "APPROVED",
+          "category": "UTILITY",
+          "id": "1769282936680688"
+        }
+      ],
       "apps": [],
       "webhooks": null
     }

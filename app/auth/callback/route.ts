@@ -30,5 +30,43 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/login?error=oauth_failed`, request.url))
   }
 
+  // Get authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return NextResponse.redirect(new URL(`/login?error=user_not_found`, request.url))
+  }
+
+  console.log("[v0] Auth callback - User:", user.id)
+
+  // Check if user has a project
+  const { data: existingProject } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("owner_id", user.id)
+    .maybeSingle()
+
+  if (!existingProject) {
+    // Create a default project for the user
+    console.log("[v0] Creating default project for user:", user.id)
+    const { data: newProject, error: projectError } = await supabase
+      .from("projects")
+      .insert({
+        owner_id: user.id,
+        name: "My Project",
+        description: "Default project created on first login",
+      })
+      .select()
+      .single()
+
+    if (projectError) {
+      console.error("[v0] Failed to create project:", projectError)
+    } else {
+      console.log("[v0] Project created successfully:", newProject?.id)
+    }
+  } else {
+    console.log("[v0] User already has a project:", existingProject.id)
+  }
+
   return response
 }
+

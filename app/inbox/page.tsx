@@ -18,55 +18,29 @@ function InboxContent() {
   const [messageText, setMessageText] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [shouldRedirect, setShouldRedirect] = useState(false)
   
   const { contacts, isLoading: contactsLoading, error: contactsError } = useContactsRealtime()
   const { messages = [], mutate: mutateMessages, error: messagesError } = useMessages({ 
     contact_id: selectedContact?.id 
   })
 
-  // Check if user has a project on mount
+  // Handle errors
   useEffect(() => {
-    const checkProject = async () => {
-      try {
-        const response = await fetch("/api/project/check")
-        const data = await response.json()
-        
-        if (!data.hasProject) {
-          console.log("[v0] No project found, redirecting to init")
-          setShouldRedirect(true)
-        }
-      } catch (error) {
-        console.error("[v0] Project check error:", error)
-      }
+    if (contactsError) {
+      setError("Failed to load contacts. Make sure your WhatsApp numbers are set up.")
+    } else if (messagesError) {
+      setError("Failed to load messages. Please try again.")
+    } else {
+      setError(null)
     }
+  }, [contactsError, messagesError])
 
-    checkProject()
-  }, [])
-
-  if (shouldRedirect) {
-    return (
-      <div className="flex h-screen bg-background overflow-hidden text-right" dir="rtl">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-muted-foreground">جاري إعادة التوجيه...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Redirect effect
+  // Auto-select first contact
   useEffect(() => {
-    if (shouldRedirect) {
-      const timer = setTimeout(() => {
-        window.location.href = "/init"
-      }, 500)
-      return () => clearTimeout(timer)
+    if (contacts.length > 0 && !selectedContact) {
+      setSelectedContact(contacts[0])
     }
-  }, [shouldRedirect])
+  }, [contacts, selectedContact])
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return
@@ -99,10 +73,10 @@ function InboxContent() {
           <div className="text-center space-y-4">
             <p className="text-red-500 font-medium">{error}</p>
             <Button 
-              onClick={() => window.location.reload()}
+              onClick={() => window.location.href = "/init"}
               variant="outline"
             >
-              إعادة تحميل
+              إعداد WhatsApp
             </Button>
           </div>
         </div>
@@ -313,7 +287,7 @@ function InboxContent() {
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="w-full">
               <TabsTrigger value="info" className="flex-1">معلومات</TabsTrigger>
-              <TabsTrigger value="details" className="flex-1">معلومات</TabsTrigger>
+              <TabsTrigger value="details" className="flex-1">التفاصيل</TabsTrigger>
             </TabsList>
             <TabsContent value="info" className="space-y-6 mt-6">
               <div className="flex flex-col items-center">

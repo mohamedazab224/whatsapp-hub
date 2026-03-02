@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Smartphone, Zap, Calendar, ChevronLeft, Code2, Webhook, ExternalLink } from "lucide-react"
 import { DailyMessagesChart } from "@/components/dashboard/charts"
 import { DashboardContent } from "@/components/dashboard/dashboard-content"
+import { redirect } from "next/navigation"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export const metadata = {
   title: "لوحة المعلومات",
@@ -11,6 +13,26 @@ export const metadata = {
 }
 
 export default async function Dashboard() {
+  const supabase = await createSupabaseServerClient()
+  
+  // Check if user is authenticated
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    redirect("/login")
+  }
+
+  // Check if user has WhatsApp numbers set up
+  const { data: numbers, error: numbersError } = await supabase
+    .from("whatsapp_numbers")
+    .select("id")
+    .limit(1)
+
+  // If no numbers configured, redirect to setup
+  if (!numbersError && (!numbers || numbers.length === 0)) {
+    console.log("[v0] No WhatsApp numbers found, redirecting to setup")
+    redirect("/init")
+  }
+
   return (
     <div className="flex h-screen bg-background text-right" dir="rtl">
       <Sidebar />
@@ -47,3 +69,4 @@ export default async function Dashboard() {
     </div>
   )
 }
+

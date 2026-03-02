@@ -11,7 +11,8 @@
     "clean": "rm -rf .next .turbo dist build out .cache .eslintcache error.txt fix-notes.txt node_modules pnpm-lock.yaml",
     "rebuild": "npm run clean && npm install && npm run build",
     "setup-demo": "node scripts/setup-demo-user.js",
-    "send-test": "node scripts/send-test-message.js"
+    "send-test": "node scripts/send-test-message.js",
+    "import-meta": "node scripts/import-meta-data.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

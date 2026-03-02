@@ -15,15 +15,27 @@ export async function GET() {
       throw new UnauthorizedError()
     }
 
+    // Get the user's project ID
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
+
+    if (projectError || !project) {
+      logError("API:GET /api/numbers", projectError || "No project found")
+      throw projectError || new Error("No project found for user")
+    }
+
     const { data: numbers, error: numbersError } = await supabase
       .from("whatsapp_numbers")
       .select("id, phone_number, name, status, type")
-      .eq("project_id", user.id)
+      .eq("project_id", project.id)
 
     const { count: totalNumbers, error: countError } = await supabase
       .from("whatsapp_numbers")
       .select("*", { count: "exact", head: true })
-      .eq("project_id", user.id)
+      .eq("project_id", project.id)
 
     if (numbersError) {
       logError("API:GET /api/numbers", numbersError)
@@ -72,12 +84,24 @@ export async function POST(request: Request) {
       throw new UnauthorizedError()
     }
 
+    // Get the user's project ID
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
+
+    if (projectError || !project) {
+      logError("API:POST /api/numbers", projectError || "No project found")
+      throw projectError || new Error("No project found for user")
+    }
+
     logInfo("API:POST /api/numbers", `Adding number for user ${user.id}`)
 
     const { data, error } = await supabase
       .from("whatsapp_numbers")
       .insert({
-        project_id: user.id,
+        project_id: project.id,
         phone_number: body.phone_number,
         name: body.name,
         status: "pending",

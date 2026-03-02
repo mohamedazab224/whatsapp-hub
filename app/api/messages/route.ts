@@ -20,10 +20,22 @@ export async function GET(request: Request) {
       throw new UnauthorizedError()
     }
 
+    // Get the user's project ID
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
+
+    if (projectError || !project) {
+      logError("API:GET /api/messages", projectError || "No project found")
+      throw projectError || new Error("No project found for user")
+    }
+
     let query = supabase
       .from("messages")
       .select("*, contacts(name, wa_id), media_files(public_url, mime_type)")
-      .eq("project_id", user.id)
+      .eq("project_id", project.id)
 
     if (contactId) {
       query = query.eq("contact_id", contactId)
@@ -40,7 +52,7 @@ export async function GET(request: Request) {
     const { count: totalMessages, error: countError } = await supabase
       .from("messages")
       .select("*", { count: "exact", head: true })
-      .eq("project_id", user.id)
+      .eq("project_id", project.id)
 
     if (messagesError) {
       logError("API:GET /api/messages", messagesError)
@@ -96,12 +108,24 @@ export async function POST(request: Request) {
       throw new UnauthorizedError()
     }
 
+    // Get the user's project ID
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id)
+      .single()
+
+    if (projectError || !project) {
+      logError("API:POST /api/messages", projectError || "No project found")
+      throw projectError || new Error("No project found for user")
+    }
+
     logInfo("API:POST /api/messages", `Creating message for user ${user.id}`)
 
     const { data, error } = await supabase
       .from("messages")
       .insert({
-        project_id: user.id,
+        project_id: project.id,
         contact_id: body.contact_id,
         whatsapp_number_id: body.whatsapp_number_id,
         to_phone_id: body.to_phone_id,

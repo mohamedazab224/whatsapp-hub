@@ -96,6 +96,7 @@ const systemMenu = [
   { name: "إعدادات الذكاء الاصطناعي", href: "/settings/ai", icon: Terminal },
   { name: "إعدادات التكامل", href: "/settings/integrations", icon: Settings },
   { name: "إعدادات المشروع", href: "/settings/project", icon: Settings },
+  { name: "مزامنة بيانات Meta", href: "/data/meta-sync", icon: FileJson },
 ]
 
 export function SidebarClient({ projects, numbers }: { projects: Project[]; numbers: NumberRecord[] }) {

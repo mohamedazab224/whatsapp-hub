@@ -1,22 +1,9 @@
-"use client"
-
 import { Sidebar } from "@/components/dashboard/sidebar"
-import { AddNumberForm } from "@/components/forms/add-number-form"
-import { useNumbers } from "@/hooks/use-data"
-import { useState } from "react"
+import { AddNumberFormClient } from "@/components/forms/add-number-form"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
-export default function AddNumberPage() {
-  const { mutate } = useNumbers()
-  const [success, setSuccess] = useState(false)
-
-  const handleSuccess = () => {
-    setSuccess(true)
-    mutate()
-    setTimeout(() => setSuccess(false), 3000)
-  }
-
+export default async function AddNumberPage() {
   return (
     <div className="flex h-screen bg-background" dir="rtl">
       <Sidebar />
@@ -35,13 +22,7 @@ export default function AddNumberPage() {
             <p className="text-muted-foreground mt-2">أضف رقم واتساب جديد إلى نظامك لبدء الاستخدام</p>
           </div>
 
-          {success && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-              تمت إضافة الرقم بنجاح! سيتم تفعيله قريباً.
-            </div>
-          )}
-
-          <AddNumberForm onSuccess={handleSuccess} />
+          <AddNumberFormClient />
         </div>
       </main>
     </div>

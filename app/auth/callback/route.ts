@@ -39,40 +39,26 @@ export async function GET(request: NextRequest) {
 
   console.log("[v0] Auth callback - User:", user.id)
 
-  // Use admin client for project creation (has permission to create)
-  const adminClient = createSupabaseAdminClient()
+  // Initialize project for user by calling the init-project API
+  try {
+    const initResponse = await fetch(
+      new URL("/api/auth/init-project", request.url),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      }
+    )
 
-  // Check if user has a project
-  const { data: existingProject, error: checkError } = await adminClient
-    .from("projects")
-    .select("id")
-    .eq("owner_id", user.id)
-    .maybeSingle()
-
-  if (checkError) {
-    console.error("[v0] Error checking project:", checkError)
-  }
-
-  if (!existingProject) {
-    // Create a default project for the user using admin client
-    console.log("[v0] Creating default project for user:", user.id)
-    const { data: newProject, error: projectError } = await adminClient
-      .from("projects")
-      .insert({
-        owner_id: user.id,
-        name: "My Project",
-        description: "Default project created on first login",
-      })
-      .select()
-      .single()
-
-    if (projectError) {
-      console.error("[v0] Failed to create project:", projectError)
+    if (initResponse.ok) {
+      const result = await initResponse.json()
+      console.log("[v0] Project initialized:", result.project?.id)
     } else {
-      console.log("[v0] Project created successfully:", newProject?.id)
+      const error = await initResponse.json()
+      console.error("[v0] Failed to initialize project:", error)
     }
-  } else {
-    console.log("[v0] User already has a project:", existingProject.id)
+  } catch (error) {
+    console.error("[v0] Project initialization error:", error)
   }
 
   return response

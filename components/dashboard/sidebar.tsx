@@ -31,14 +31,11 @@ export async function Sidebar() {
       .select("id, display_phone_number, verified_name, project_id")
       .eq("project_id", project.id)
 
-    if (numbersError) {
-      console.error("[v0] Error fetching numbers:", numbersError)
-      numbers = []
-    }
+    const finalNumbers = numbersError ? [] : (numbers || [])
 
-    console.log("[v0] Sidebar loaded - Project:", project.name, "Numbers:", numbers?.length || 0)
+    console.log("[v0] Sidebar loaded - Project:", project.name, "Numbers:", finalNumbers.length)
 
-    return <SidebarClient projects={[project]} numbers={numbers || []} />
+    return <SidebarClient projects={[project]} numbers={finalNumbers} />
   } catch (error) {
     console.error("[v0] Error in Sidebar:", error)
     return <SidebarClient projects={[]} numbers={[]} />

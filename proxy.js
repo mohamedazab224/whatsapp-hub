@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { updateSupabaseSession } from "@/lib/supabase/middleware"
 
 const PUBLIC_PATHS = ["/login", "/auth/callback"]
@@ -15,7 +15,7 @@ const isStaticAsset = (pathname) =>
   pathname === "/robots.txt" ||
   pathname === "/sitemap.xml"
 
-export async function proxy(request) {
+export default async function middleware(request) {
   const { pathname } = request.nextUrl
 
   if (isStaticAsset(pathname)) {
@@ -43,4 +43,5 @@ export async function proxy(request) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image).*)"],
 }
+
 

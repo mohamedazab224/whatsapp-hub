@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import Handlebars from 'handlebars';
-import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { render } from '@/lib/template-engine';
 
 export class EmailService {

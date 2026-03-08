@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server"
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { logger } from "@/lib/logger"
 import type { Database } from "@/lib/database.types"
 

@@ -1,5 +1,10 @@
 import crypto from "crypto"
 import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import {
+  validateMediaMessage,
+  extractMediaMetadata,
+  handleMediaDownload,
+} from "@/lib/media/whatsapp-media-handler"
 
 /**
  * WhatsApp Webhook Receiver
@@ -152,18 +157,47 @@ export async function processWhatsAppWebhook(
                 continue
               }
 
-              // Handle media
-              if (
-                (message.type === "image" || message.type === "video" || message.type === "document") &&
-                message.image?.id
-              ) {
-                const mediaId = message.image?.id || message.video?.id || message.document?.id
-                await admin.from("media_files").insert({
-                  project_id: projectId,
-                  media_id: mediaId,
-                  mime_type: message.image?.mime_type || message.video?.mime_type || message.document?.mime_type,
-                  file_size: 0, // Would be populated from Meta API
-                })
+              // Handle media files (images, videos, documents, audio)
+              if (validateMediaMessage(message)) {
+                const mediaMetadata = extractMediaMetadata(message)
+                if (mediaMetadata) {
+                  try {
+                    // Generate file name based on type and timestamp
+                    const timestamp = new Date(parseInt(message.timestamp) * 1000).getTime()
+                    const extension = getFileExtension(mediaMetadata.type, mediaMetadata.mime_type)
+                    const fileName = `${mediaMetadata.id}_${timestamp}${extension}`
+
+                    console.log(`[v0] Downloading media: ${fileName}`)
+
+                    // Download media with retry strategy
+                    const downloadResult = await handleMediaDownload(
+                      mediaMetadata.id,
+                      fileName,
+                      projectId
+                    )
+
+                    if (downloadResult.success) {
+                      // Store media file reference
+                      await admin.from("media_files").insert({
+                        project_id: projectId,
+                        message_id: message.id,
+                        media_id: mediaMetadata.id,
+                        mime_type: mediaMetadata.mime_type,
+                        file_size: downloadResult.size || 0,
+                        storage_path: downloadResult.path,
+                        downloaded_at: new Date().toISOString(),
+                      })
+
+                      console.log(`[v0] Media stored: ${downloadResult.path}`)
+                    } else {
+                      console.warn(`[v0] Media download failed: ${downloadResult.error}`)
+                      errors.push(`Media download failed: ${downloadResult.error}`)
+                    }
+                  } catch (mediaError) {
+                    console.error(`[v0] Media handling error:`, mediaError)
+                    errors.push(`Media handling failed: ${mediaError instanceof Error ? mediaError.message : String(mediaError)}`)
+                  }
+                }
               }
 
               processedEvents++
@@ -202,6 +236,35 @@ export async function processWhatsAppWebhook(
     errors.push(msg)
     return { success: false, processedEvents, errors }
   }
+}
+
+// Helper function to get file extension
+function getFileExtension(mediaType: string, mimeType?: string): string {
+  const extensionMap: Record<string, string> = {
+    image: ".jpg",
+    video: ".mp4",
+    audio: ".m4a",
+    document: ".pdf",
+  }
+
+  // Try to get extension from mime type first
+  if (mimeType) {
+    const parts = mimeType.split("/")
+    if (parts.length === 2) {
+      const subtype = parts[1].toLowerCase()
+      if (subtype.includes("jpeg") || subtype.includes("jpg")) return ".jpg"
+      if (subtype.includes("png")) return ".png"
+      if (subtype.includes("gif")) return ".gif"
+      if (subtype.includes("mp4")) return ".mp4"
+      if (subtype.includes("webm")) return ".webm"
+      if (subtype.includes("pdf")) return ".pdf"
+      if (subtype.includes("msword")) return ".doc"
+      if (subtype.includes("sheet")) return ".xlsx"
+      if (subtype.includes("audio")) return ".m4a"
+    }
+  }
+
+  return extensionMap[mediaType] || ".bin"
 }
 
 export async function forwardToVAE(

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { logError, logInfo, logWarn, UnauthorizedError, ValidationError } from "@/lib/errors"
+import { handleSupabaseError } from "@/lib/supabase/error-handler"
 
 export async function GET() {
   try {
@@ -14,17 +15,37 @@ export async function GET() {
       throw new UnauthorizedError()
     }
 
+    // Get the user's project ID
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+
+    if (projectError || !project) {
+      logError("API:GET /api/numbers", projectError || "No project found")
+      throw projectError || new Error("No project found for user")
+    }
+
     const { data: numbers, error: numbersError } = await supabase
       .from("whatsapp_numbers")
       .select("id, phone_number, name, status, type")
-      .eq("project_id", user.id)
+      .eq("project_id", project.id)
 
-    const { count: totalNumbers } = await supabase
+    const { count: totalNumbers, error: countError } = await supabase
       .from("whatsapp_numbers")
       .select("*", { count: "exact", head: true })
-      .eq("project_id", user.id)
+      .eq("project_id", project.id)
 
-    if (numbersError) throw numbersError
+    if (numbersError) {
+      logError("API:GET /api/numbers", numbersError)
+      throw numbersError
+    }
+
+    if (countError) {
+      logError("API:GET /api/numbers", countError)
+      throw countError
+    }
 
     logInfo("API:GET /api/numbers", `Retrieved ${numbers?.length || 0} numbers`)
 
@@ -38,9 +59,10 @@ export async function GET() {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-    
+
+    const errorMsg = error instanceof Error ? error.message : handleSupabaseError(error, "GET /api/numbers")
     return NextResponse.json(
-      { error: "Failed to fetch numbers" },
+      { error: errorMsg || "Failed to fetch numbers" },
       { status: 500 }
     )
   }
@@ -62,12 +84,24 @@ export async function POST(request: Request) {
       throw new UnauthorizedError()
     }
 
+    // Get the user's project ID
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+
+    if (projectError || !project) {
+      logError("API:POST /api/numbers", projectError || "No project found")
+      throw projectError || new Error("No project found for user")
+    }
+
     logInfo("API:POST /api/numbers", `Adding number for user ${user.id}`)
 
     const { data, error } = await supabase
       .from("whatsapp_numbers")
       .insert({
-        project_id: user.id,
+        project_id: project.id,
         phone_number: body.phone_number,
         name: body.name,
         status: "pending",
@@ -75,7 +109,10 @@ export async function POST(request: Request) {
       })
       .select()
 
-    if (error) throw error
+    if (error) {
+      logError("API:POST /api/numbers", error)
+      throw error
+    }
 
     logInfo("API:POST /api/numbers", "Number added successfully")
 
@@ -90,9 +127,10 @@ export async function POST(request: Request) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
     }
-    
+
+    const errorMsg = error instanceof Error ? error.message : handleSupabaseError(error, "POST /api/numbers")
     return NextResponse.json(
-      { error: "Failed to add number" },
+      { error: errorMsg || "Failed to add number" },
       { status: 500 }
     )
   }

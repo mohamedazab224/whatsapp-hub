@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { getPublicEnv } from "@/lib/env.public"
 
 export async function GET(request: NextRequest) {
@@ -30,5 +31,37 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/login?error=oauth_failed`, request.url))
   }
 
+  // Get authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return NextResponse.redirect(new URL(`/login?error=user_not_found`, request.url))
+  }
+
+  console.log("[v0] Auth callback - User:", user.id)
+
+  // Initialize project for user by calling the init-project API
+  try {
+    const initResponse = await fetch(
+      new URL("/api/auth/init-project", request.url),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      }
+    )
+
+    if (initResponse.ok) {
+      const result = await initResponse.json()
+      console.log("[v0] Project initialized:", result.project?.id)
+    } else {
+      const error = await initResponse.json()
+      console.error("[v0] Failed to initialize project:", error)
+    }
+  } catch (error) {
+    console.error("[v0] Project initialization error:", error)
+  }
+
   return response
 }
+
+

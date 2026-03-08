@@ -138,3 +138,6 @@ export function AddNumberForm({ onSuccess }: { onSuccess?: () => void }) {
     </Card>
   )
 }
+
+// Export with client alias for server component imports
+export const AddNumberFormClient = AddNumberForm

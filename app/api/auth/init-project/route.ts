@@ -13,13 +13,18 @@ export async function POST(request: Request) {
     const admin = createSupabaseAdminClient()
 
     // Check if user already has a project
-    const { data: existing } = await admin
+    const { data: existing, error: checkError } = await admin
       .from("projects")
       .select("id")
       .eq("owner_id", userId)
       .maybeSingle()
 
-    let projectId = existing?.id
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error("[v0] Project check failed:", checkError)
+      return NextResponse.json({ error: "Failed to check project" }, { status: 500 })
+    }
+
+    const projectId = existing ? (existing as any).id : null
 
     if (!existing) {
       // Create default project
@@ -30,7 +35,7 @@ export async function POST(request: Request) {
           name: "My First Project",
           description: "Default project created on first login",
         })
-        .select()
+        .select("id")
         .single()
 
       if (createError) {
@@ -38,30 +43,36 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: createError.message }, { status: 500 })
       }
 
-      projectId = newProject?.id
-      console.log("[v0] Project created:", projectId)
+      const newProjectId = (newProject as any)?.id
+      console.log("[v0] Project created:", newProjectId)
+
+      // Seed Meta data for the project
+      if (newProjectId) {
+        try {
+          const numbersResult = await seedWhatsAppNumbers(newProjectId)
+          const templatesResult = await seedMessageTemplates(newProjectId)
+          console.log("[v0] Meta data seeded - Numbers:", numbersResult.count, "Templates:", templatesResult.count)
+        } catch (seedError) {
+          console.warn("[v0] Meta data seeding warning:", seedError)
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        project: {
+          id: newProjectId,
+        },
+      })
     } else {
       console.log("[v0] User already has project:", projectId)
-    }
 
-    // Seed Meta data for the project
-    if (projectId) {
-      try {
-        const numbersResult = await seedWhatsAppNumbers(projectId)
-        const templatesResult = await seedMessageTemplates(projectId)
-        console.log("[v0] Meta data seeded - Numbers:", numbersResult.count, "Templates:", templatesResult.count)
-      } catch (seedError) {
-        console.warn("[v0] Meta data seeding warning:", seedError)
-        // Don't fail if seeding fails, project is still created
-      }
+      return NextResponse.json({
+        success: true,
+        project: {
+          id: projectId,
+        },
+      })
     }
-
-    return NextResponse.json({
-      success: true,
-      project: {
-        id: projectId,
-      },
-    })
   } catch (error) {
     console.error("[v0] Project initialization error:", error)
     return NextResponse.json(

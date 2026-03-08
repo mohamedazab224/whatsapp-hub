@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import {
   validateMediaMessage,
   extractMediaMetadata,

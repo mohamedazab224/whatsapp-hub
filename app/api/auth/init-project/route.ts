@@ -1,4 +1,4 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { seedWhatsAppNumbers, seedMessageTemplates } from "@/lib/meta/seed"
 

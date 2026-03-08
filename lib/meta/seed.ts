@@ -1,4 +1,4 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { WHATSAPP_NUMBERS, META_CONFIG } from "@/lib/meta/config"
 
 /**

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { getPublicEnv } from "@/lib/env.public"
 
 export async function GET(request: NextRequest) {

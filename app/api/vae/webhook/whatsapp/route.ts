@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyWebhookSignature, processWhatsAppWebhook, forwardToVAE } from "@/lib/middleware/whatsapp-webhook-receiver"
 import { routeMessage, MessageContext } from "@/lib/middleware/flow-router"
-import { createSupabaseAdminClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 /**
  * WhatsApp Business API Webhook Handler

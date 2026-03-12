@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
-import { useState } from 'react'
 
 interface Notification {
   id: string
@@ -15,48 +14,98 @@ interface Notification {
 
 export function NotificationProvider() {
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const notificationRef = useRef<any>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const retryCountRef = useRef(0)
+  const maxRetries = 5
 
   useEffect(() => {
-    // Set up real-time listener using EventSource (SSE)
-    const eventSource = new EventSource('/api/notifications/stream')
-
-    eventSource.onmessage = (event) => {
+    const connectStream = () => {
       try {
-        const notification = JSON.parse(event.data)
-        setNotifications((prev) => [
-          {
-            ...notification,
-            id: Date.now().toString(),
-            read: false,
-            timestamp: new Date(),
-          },
-          ...prev,
-        ].slice(0, 50)) // Keep last 50
+        console.log('[v0] Connecting to notifications stream...')
+        const eventSource = new EventSource('/api/notifications/stream')
+        eventSourceRef.current = eventSource
 
-        // Show browser notification
-        if (Notification.permission === 'granted') {
-          new Notification(notification.title, {
-            body: notification.message,
-            icon: '/logo.png',
-          })
+        eventSource.addEventListener('open', () => {
+          console.log('[v0] Notifications stream connected')
+          retryCountRef.current = 0
+        })
+
+        eventSource.onmessage = (event) => {
+          try {
+            // Skip heartbeat and keepalive messages
+            if (event.data === ': heartbeat' || event.data === ': keepalive' || event.data === ': connected') {
+              return
+            }
+
+            const notification = JSON.parse(event.data)
+            setNotifications((prev) => [
+              {
+                ...notification,
+                id: Date.now().toString(),
+                read: false,
+                timestamp: new Date(),
+              },
+              ...prev,
+            ].slice(0, 50))
+
+            // Show browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification(notification.title, {
+                  body: notification.message,
+                  icon: '/logo.png',
+                  tag: 'whatsapp-notification',
+                })
+              } catch (e) {
+                console.error('[v0] Error showing notification:', e)
+              }
+            }
+          } catch (error) {
+            console.error('[v0] Error parsing notification:', error, 'data:', event.data)
+          }
+        }
+
+        eventSource.addEventListener('error', (event) => {
+          console.error('[v0] Notification stream error:', event)
+          eventSource.close()
+
+          // Retry logic with exponential backoff
+          if (retryCountRef.current < maxRetries) {
+            retryCountRef.current++
+            const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000)
+            console.log(`[v0] Reconnecting in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`)
+            setTimeout(() => {
+              connectStream()
+            }, delay)
+          } else {
+            console.error('[v0] Max retries reached, giving up')
+          }
+        })
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission()
+        }
+
+        return () => {
+          if (eventSourceRef.current) {
+            eventSourceRef.current.close()
+            eventSourceRef.current = null
+          }
         }
       } catch (error) {
-        console.error('[v0] Error parsing notification:', error)
+        console.error('[v0] Error setting up notification stream:', error)
       }
     }
 
-    eventSource.onerror = () => {
-      console.error('[v0] Notification stream error')
-      eventSource.close()
-    }
+    connectStream()
 
-    // Request notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission()
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
     }
-
-    return () => eventSource.close()
   }, [])
 
   return (

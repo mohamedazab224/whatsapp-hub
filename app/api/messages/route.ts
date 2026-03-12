@@ -1,7 +1,46 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { logError, logInfo, logWarn, UnauthorizedError, ValidationError } from "@/lib/errors"
 import { handleSupabaseError } from "@/lib/supabase/error-handler"
+
+async function ensureUserProject(userId: string, supabase: any) {
+  try {
+    // Check if user has a project
+    const { data: project, error: checkError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_id", userId)
+      .maybeSingle()
+
+    if (project) {
+      return project.id
+    }
+
+    // Project doesn't exist, create one using admin client
+    const admin = createSupabaseAdminClient()
+    const { data: newProject, error: createError } = await admin
+      .from("projects")
+      .insert({
+        owner_id: userId,
+        name: "My First Project",
+        description: "Auto-created on first use",
+      })
+      .select("id")
+      .single() as { data: { id: string } | null; error: any }
+
+    if (createError || !newProject?.id) {
+      logError("API:ensureUserProject", createError || "Failed to create project")
+      throw createError || new Error("Failed to create project")
+    }
+
+    logInfo("API:ensureUserProject", `Project auto-created: ${newProject.id}`)
+    return newProject.id
+  } catch (error) {
+    logError("API:ensureUserProject", error)
+    throw error
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -20,22 +59,19 @@ export async function GET(request: Request) {
       throw new UnauthorizedError()
     }
 
-    // Get the user's project ID
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle()
-
-    if (projectError || !project) {
-      logError("API:GET /api/messages", projectError || "No project found")
-      throw projectError || new Error("No project found for user")
+    // Ensure user has a project, create if needed
+    let projectId: string
+    try {
+      projectId = await ensureUserProject(user.id, supabase)
+    } catch (error) {
+      logError("API:GET /api/messages", "Failed to ensure project")
+      throw error
     }
 
     let query = supabase
       .from("messages")
       .select("*, contacts(name, wa_id), media_files(public_url, mime_type)")
-      .eq("project_id", project.id)
+      .eq("project_id", projectId)
 
     if (contactId) {
       query = query.eq("contact_id", contactId)
@@ -52,7 +88,7 @@ export async function GET(request: Request) {
     const { count: totalMessages, error: countError } = await supabase
       .from("messages")
       .select("*", { count: "exact", head: true })
-      .eq("project_id", project.id)
+      .eq("project_id", projectId)
 
     if (messagesError) {
       logError("API:GET /api/messages", messagesError)
@@ -108,16 +144,13 @@ export async function POST(request: Request) {
       throw new UnauthorizedError()
     }
 
-    // Get the user's project ID
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle()
-
-    if (projectError || !project) {
-      logError("API:POST /api/messages", projectError || "No project found")
-      throw projectError || new Error("No project found for user")
+    // Ensure user has a project, create if needed
+    let projectId: string
+    try {
+      projectId = await ensureUserProject(user.id, supabase)
+    } catch (error) {
+      logError("API:POST /api/messages", "Failed to ensure project")
+      throw error
     }
 
     logInfo("API:POST /api/messages", `Creating message for user ${user.id}`)
@@ -125,7 +158,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from("messages")
       .insert({
-        project_id: project.id,
+        project_id: projectId,
         contact_id: body.contact_id,
         whatsapp_number_id: body.whatsapp_number_id,
         to_phone_id: body.to_phone_id,

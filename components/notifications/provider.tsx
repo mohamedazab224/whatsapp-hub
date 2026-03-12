@@ -16,24 +16,24 @@ export function NotificationProvider() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const eventSourceRef = useRef<EventSource | null>(null)
   const retryCountRef = useRef(0)
-  const maxRetries = 5
+  const maxRetries = 3
 
   useEffect(() => {
     const connectStream = () => {
       try {
-        console.log('[v0] Connecting to notifications stream...')
         const eventSource = new EventSource('/api/notifications/stream')
         eventSourceRef.current = eventSource
-
-        eventSource.addEventListener('open', () => {
-          console.log('[v0] Notifications stream connected')
-          retryCountRef.current = 0
-        })
 
         eventSource.onmessage = (event) => {
           try {
             // Skip heartbeat and keepalive messages
-            if (event.data === ': heartbeat' || event.data === ': keepalive' || event.data === ': connected') {
+            if (
+              event.data === ': heartbeat' ||
+              event.data === ': keepalive' ||
+              event.data === ': connected' ||
+              !event.data ||
+              event.data.startsWith(':')
+            ) {
               return
             }
 
@@ -57,34 +57,37 @@ export function NotificationProvider() {
                   tag: 'whatsapp-notification',
                 })
               } catch (e) {
-                console.error('[v0] Error showing notification:', e)
+                // Silent fail on notification error
               }
             }
           } catch (error) {
-            console.error('[v0] Error parsing notification:', error, 'data:', event.data)
+            // Silent fail on parse error - likely a non-notification message
           }
         }
 
-        eventSource.addEventListener('error', (event) => {
-          console.error('[v0] Notification stream error:', event)
-          eventSource.close()
+        eventSource.addEventListener('error', () => {
+          const readyState = eventSource.readyState
+          
+          // If connection is closed, try to reconnect
+          if (readyState === EventSource.CLOSED) {
+            eventSource.close()
 
-          // Retry logic with exponential backoff
-          if (retryCountRef.current < maxRetries) {
-            retryCountRef.current++
-            const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000)
-            console.log(`[v0] Reconnecting in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`)
-            setTimeout(() => {
-              connectStream()
-            }, delay)
-          } else {
-            console.error('[v0] Max retries reached, giving up')
+            if (retryCountRef.current < maxRetries) {
+              retryCountRef.current++
+              const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 30000)
+              setTimeout(() => {
+                connectStream()
+              }, delay)
+            }
+            // If max retries reached, silently give up - app still works without notifications
           }
         })
 
         // Request notification permission
         if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission()
+          Notification.requestPermission().catch(() => {
+            // Silent fail if user denies notification permission
+          })
         }
 
         return () => {
@@ -94,7 +97,7 @@ export function NotificationProvider() {
           }
         }
       } catch (error) {
-        console.error('[v0] Error setting up notification stream:', error)
+        // Silent fail - notifications are optional, app should still work
       }
     }
 
@@ -109,11 +112,11 @@ export function NotificationProvider() {
   }, [])
 
   return (
-    <div className="fixed bottom-4 right-4 space-y-2 z-50 max-w-md">
+    <div className="fixed bottom-4 right-4 space-y-2 z-50 max-w-md pointer-events-none">
       {notifications.slice(0, 5).map((notif) => (
         <div
           key={notif.id}
-          className={`p-4 rounded-lg shadow-lg border animate-in slide-in-from-right ${
+          className={`p-4 rounded-lg shadow-lg border animate-in slide-in-from-right pointer-events-auto ${
             notif.type === 'alert'
               ? 'bg-red-500/10 border-red-500/20 text-red-900'
               : notif.type === 'status'

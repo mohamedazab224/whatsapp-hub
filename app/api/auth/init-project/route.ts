@@ -2,6 +2,13 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { seedWhatsAppNumbers, seedMessageTemplates } from "@/lib/meta/seed"
 
+interface Project {
+  id: string
+  owner_id: string
+  name: string
+  created_at: string
+}
+
 export async function POST(request: Request) {
   try {
     const { userId } = await request.json()
@@ -15,9 +22,9 @@ export async function POST(request: Request) {
     // Check if user already has a project
     const { data: existing, error: checkError } = await admin
       .from("projects")
-      .select("*")
+      .select("id, owner_id, name, created_at")
       .eq("owner_id", userId)
-      .maybeSingle()
+      .maybeSingle() as { data: Project | null; error: any }
 
     if (checkError && checkError.code !== 'PGRST116') {
       console.error("[v0] Project check failed:", checkError)
@@ -40,8 +47,8 @@ export async function POST(request: Request) {
         name: "My First Project",
         description: "Default project created on first login",
       })
-      .select()
-      .single()
+      .select("id")
+      .single() as { data: { id: string } | null; error: any }
 
     if (createError) {
       console.error("[v0] Project creation failed:", createError)

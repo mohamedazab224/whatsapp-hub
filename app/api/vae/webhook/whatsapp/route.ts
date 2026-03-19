@@ -1,103 +1,88 @@
 import { NextRequest, NextResponse } from "next/server"
-import { verifyWebhookSignature, processWhatsAppWebhook, forwardToVAE } from "@/lib/middleware/whatsapp-webhook-receiver"
-import { routeMessage, MessageContext } from "@/lib/middleware/flow-router"
-import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { webhookQueue } from "@/lib/queue/webhook-processor"
+import { createLogger } from "@/lib/logger"
+import { checkRateLimit } from "@/lib/ratelimit"
+import { ResponseBuilder } from "@/lib/response/builder"
+import crypto from "crypto"
+
+const logger = createLogger("Webhook:WhatsApp")
 
 /**
  * WhatsApp Business API Webhook Handler
- * Main entry point that integrates with:
- * - Webhook receiver (signature verification, event processing)
- * - Flow router (message routing to VAE flows)
- * - Media handling (downloads and storage)
- * - Contact & conversation management
+ * Receives messages from Meta and queues them for processing
  */
 
-// POST request - استقبال الرسائل
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for") || "unknown"
+    if (!checkRateLimit(`webhook:${ip}`, 1000, 60000)) {
+      logger.warn("Rate limit exceeded", { ip })
+      return ResponseBuilder.rateLimitExceeded(60)
+    }
+
     const bodyText = await request.text()
     const body = JSON.parse(bodyText)
 
-    // Verify WhatsApp signature
+    // Verify WhatsApp signature (critical for security)
     const signature = request.headers.get("x-hub-signature-256") || ""
     const appSecret = process.env.WHATSAPP_APP_SECRET
 
     if (!appSecret) {
-      console.error("[v0] WHATSAPP_APP_SECRET not configured")
-      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
+      logger.error("WHATSAPP_APP_SECRET not configured")
+      return ResponseBuilder.internalError("Server misconfigured")
     }
 
-    const isValid = await verifyWebhookSignature(bodyText, signature, appSecret)
-    if (!isValid) {
-      console.warn("[v0] Invalid webhook signature")
-      return NextResponse.json({ error: "Invalid signature" }, { status: 403 })
+    const hash = crypto
+      .createHmac("sha256", appSecret)
+      .update(bodyText)
+      .digest("hex")
+
+    const expectedSignature = `sha256=${hash}`
+    if (signature !== expectedSignature) {
+      logger.warn("Invalid webhook signature", { signature, expected: expectedSignature })
+      return ResponseBuilder.error("Invalid signature", 403, "INVALID_SIGNATURE")
     }
 
-    // Process webhook through middleware pipeline
-    const entries = body.entry || []
-    const admin = createSupabaseAdminClient()
-    let totalProcessed = 0
+    // Queue the webhook for processing (return immediately to Meta)
+    const jobId = await webhookQueue.enqueue(body)
+    logger.info("Webhook queued for processing", { jobId, ip })
 
-    for (const entry of entries) {
-      const changes = entry.changes || []
+    // Return immediately (required by Meta)
+    return ResponseBuilder.success({ jobId, queued: true }, 200)
+  } catch (error) {
+    logger.error("Webhook processing error", error)
+    return ResponseBuilder.internalError()
+  }
+}
 
-      for (const change of changes) {
-        const value = change.value
-        const phoneNumberId = value.metadata?.phone_number_id
+// GET request - Webhook verification
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const mode = searchParams.get("hub.mode")
+    const token = searchParams.get("hub.verify_token")
+    const challenge = searchParams.get("hub.challenge")
 
-        // Get project for this phone number
-        const { data: whatsappNumber, error: numberError } = await admin
-          .from("whatsapp_numbers")
-          .select("project_id")
-          .eq("phone_number_id", phoneNumberId)
-          .maybeSingle()
+    const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
 
-        if (numberError || !whatsappNumber) {
-          console.warn(`[v0] Phone number not found: ${phoneNumberId}`)
-          continue
-        }
+    if (!verifyToken) {
+      logger.error("WHATSAPP_WEBHOOK_VERIFY_TOKEN not configured")
+      return ResponseBuilder.internalError()
+    }
 
-        const projectId = whatsappNumber.project_id
+    if (mode === "subscribe" && token === verifyToken) {
+      logger.info("Webhook verified successfully")
+      return new Response(challenge, { status: 200 })
+    }
 
-        // Process messages through webhook receiver
-        const result = await processWhatsAppWebhook(body, phoneNumberId)
-
-        if (!result.success) {
-          console.error(`[v0] Webhook processing failed:`, result.errors)
-          continue
-        }
-
-        totalProcessed += result.processedEvents
-
-        // Route messages to appropriate flows
-        if (value.messages) {
-          for (const message of value.messages) {
-            try {
-              // Get contact info
-              const { data: contact } = await admin
-                .from("contacts")
-                .select("id, name")
-                .eq("wa_id", message.from)
-                .eq("project_id", projectId)
-                .maybeSingle()
-
-              if (!contact) continue
-
-              // Create routing context
-              const routingContext: MessageContext = {
-                projectId,
-                contactId: contact.id,
-                phoneNumberId,
-                messageBody: message.text?.body || "[Non-text message]",
-                messageType: message.type as any,
-                senderPhone: message.from,
-              }
-
-              // Route the message
-              const routing = await routeMessage(routingContext)
-
-              if (routing.shouldRoute && routing.targetFlow) {
-                console.log(`[v0] Routing message to flow: ${routing.targetFlow}`)
+    logger.warn("Webhook verification failed", { mode, token, verifyToken })
+    return ResponseBuilder.error("Forbidden", 403, "FORBIDDEN")
+  } catch (error) {
+    logger.error("Webhook verification error", error)
+    return ResponseBuilder.internalError()
+  }
+}
 
                 // Forward to VAE for processing
                 await forwardToVAE(projectId, "message", {

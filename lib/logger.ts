@@ -51,3 +51,20 @@ export const logger = {
     logger.log("error", message, meta)
   },
 }
+
+export function createLogger(context: string) {
+  return {
+    debug(message: string, meta?: LogMeta) {
+      logger.debug(message, { context, ...meta })
+    },
+    info(message: string, meta?: LogMeta) {
+      logger.info(message, { context, ...meta })
+    },
+    warn(message: string, meta?: LogMeta) {
+      logger.warn(message, { context, ...meta })
+    },
+    error(message: string, meta?: LogMeta) {
+      logger.error(message, { context, ...meta })
+    },
+  }
+}

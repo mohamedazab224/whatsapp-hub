@@ -39,29 +39,68 @@ export async function GET(request: NextRequest) {
 
   console.log("[v0] Auth callback - User:", user.id)
 
-  // Initialize project for user by calling the init-project API
   try {
-    const initResponse = await fetch(
-      new URL("/api/auth/init-project", request.url),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
-      }
-    )
+    const admin = createSupabaseAdminClient()
 
-    if (initResponse.ok) {
-      const result = await initResponse.json()
-      console.log("[v0] Project initialized:", result.project?.id)
+    // Step 1: Ensure user exists in users table
+    const { data: existingUser, error: checkError } = await admin
+      .from("users")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (!existingUser) {
+      // Create user in users table
+      const { error: createUserError } = await admin
+        .from("users")
+        .insert({
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+          avatar_url: user.user_metadata?.avatar_url || null,
+        })
+
+      if (createUserError) {
+        console.error("[v0] Failed to create user record:", createUserError)
+        return NextResponse.redirect(new URL(`/login?error=user_creation_failed`, request.url))
+      }
+      console.log("[v0] User record created")
     } else {
-      const error = await initResponse.json()
-      console.error("[v0] Failed to initialize project:", error)
+      console.log("[v0] User record already exists")
+    }
+
+    // Step 2: Create default project for user
+    const { data: existingProject } = await admin
+      .from("projects")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+
+    if (!existingProject) {
+      const { data: newProject, error: projectError } = await admin
+        .from("projects")
+        .insert({
+          owner_id: user.id,
+          name: "My First Project",
+          description: "Default project created on first login",
+        })
+        .select("id")
+        .single() as { data: { id: string } | null; error: any }
+
+      if (projectError) {
+        console.error("[v0] Failed to create project:", projectError)
+        // Don't fail auth if project creation fails - user can still login
+      } else {
+        console.log("[v0] Project created:", newProject?.id)
+      }
+    } else {
+      console.log("[v0] Project already exists")
     }
   } catch (error) {
-    console.error("[v0] Project initialization error:", error)
+    console.error("[v0] Auth setup error:", error)
+    // Don't fail auth callback even if setup fails
   }
 
   return response
 }
-
 

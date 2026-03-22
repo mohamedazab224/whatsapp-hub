@@ -1,41 +1,63 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
-import { logError, logInfo, logWarn, UnauthorizedError, ValidationError } from "@/lib/errors"
-import { handleSupabaseError } from "@/lib/supabase/error-handler"
+import { NextRequest } from "next/server"
+import { createLogger } from "@/lib/logger"
+import { checkRateLimit } from "@/lib/ratelimit"
+import { validators, ValidationError } from "@/lib/validators"
+import { ResponseBuilder } from "@/lib/response/builder"
 
-export async function GET(request: Request) {
+const logger = createLogger("API:Messages")
+
+async function ensureWorkspace(supabase: any, userId: string) {
+  const { data: workspace, error } = await supabase
+    .from("workspaces")
+    .select("id")
+    .eq("owner_id", userId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!workspace) {
+    throw new Error("Workspace not found")
+  }
+
+  return workspace.id
+}
+
+export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for") || "unknown"
+    if (!checkRateLimit(`api:${ip}`, 100, 60000)) {
+      return ResponseBuilder.rateLimitExceeded()
+    }
+
     const { searchParams } = new URL(request.url)
     const contactId = searchParams.get("contact_id")
-    const page = parseInt(searchParams.get("page") || "1")
-    const limit = parseInt(searchParams.get("limit") || "50")
-    
-    logInfo("API:GET /api/messages", "Fetching messages")
-    
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "50")))
+
+    logger.info("Fetching messages", { page, limit, contactId: !!contactId })
+
     const supabase = await createSupabaseServerClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      logWarn("API:GET /api/messages", "Unauthorized access")
-      throw new UnauthorizedError()
+      return ResponseBuilder.unauthorized()
     }
 
-    // Get the user's project ID
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle()
-
-    if (projectError || !project) {
-      logError("API:GET /api/messages", projectError || "No project found")
-      throw projectError || new Error("No project found for user")
-    }
+    const workspaceId = await ensureWorkspace(supabase, user.id)
 
     let query = supabase
       .from("messages")
-      .select("*, contacts(name, wa_id), media_files(public_url, mime_type)")
-      .eq("project_id", project.id)
+      .select(
+        `*, 
+        contacts(name, wa_id),
+        media:media_files(public_url, mime_type)`,
+        { count: "exact" }
+      )
+      .eq("workspace_id", workspaceId)
 
     if (contactId) {
       query = query.eq("contact_id", contactId)
@@ -45,122 +67,77 @@ export async function GET(request: Request) {
     const from = (page - 1) * limit
     const to = from + limit - 1
 
-    const { data: messages, error: messagesError } = await query
+    const { data: messages, count: total, error: messagesError } = await query
       .order("timestamp", { ascending: false })
       .range(from, to)
 
-    const { count: totalMessages, error: countError } = await supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .eq("project_id", project.id)
+    if (messagesError) throw messagesError
 
-    if (messagesError) {
-      logError("API:GET /api/messages", messagesError)
-      throw messagesError
-    }
+    logger.info("Retrieved messages", { count: messages?.length || 0, total })
 
-    if (countError) {
-      logError("API:GET /api/messages", countError)
-      throw countError
-    }
-
-    logInfo("API:GET /api/messages", `Retrieved ${messages?.length || 0} messages`)
-
-    return NextResponse.json({
-      messages: messages || [],
-      total: totalMessages || 0,
-      page,
-      limit,
-      totalPages: Math.ceil((totalMessages || 0) / limit),
-    })
+    return ResponseBuilder.paginated(messages || [], total || 0, page, limit)
   } catch (error) {
-    logError("API:GET /api/messages", error)
-    
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
-    }
-    
+    logger.error("Failed to fetch messages", error)
     if (error instanceof ValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return ResponseBuilder.badRequest(error.message)
     }
-
-    const errorMsg = error instanceof Error ? error.message : handleSupabaseError(error, "GET /api/messages")
-    return NextResponse.json(
-      { error: errorMsg || "Failed to fetch messages" },
-      { status: 500 }
-    )
+    return ResponseBuilder.internalError()
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
-    // Validation
-    if (!body.contact_id || !body.body) {
-      throw new ValidationError("Contact ID and message body are required")
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for") || "unknown"
+    if (!checkRateLimit(`api:${ip}:send`, 50, 60000)) {
+      return ResponseBuilder.rateLimitExceeded()
     }
+
+    const body = await request.json()
+
+    // Validation
+    validators.required(body.contact_id, "contact_id")
+    validators.required(body.body, "body")
+    validators.string(body.body, "body", 1, 4096)
+
+    logger.info("Creating message", { contactId: body.contact_id })
 
     const supabase = await createSupabaseServerClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      throw new UnauthorizedError()
+      return ResponseBuilder.unauthorized()
     }
 
-    // Get the user's project ID
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle()
+    const workspaceId = await ensureWorkspace(supabase, user.id)
 
-    if (projectError || !project) {
-      logError("API:POST /api/messages", projectError || "No project found")
-      throw projectError || new Error("No project found for user")
-    }
-
-    logInfo("API:POST /api/messages", `Creating message for user ${user.id}`)
-
-    const { data, error } = await supabase
+    const { data: message, error: createError } = await supabase
       .from("messages")
       .insert({
-        project_id: project.id,
-        contact_id: body.contact_id,
-        whatsapp_number_id: body.whatsapp_number_id,
-        to_phone_id: body.to_phone_id,
-        from_phone_id: body.from_phone_id,
+        workspace_id: workspaceId,
+        contact_id: validators.uuid(body.contact_id, "contact_id"),
         body: body.body,
         type: body.type || "text",
         direction: "outbound",
         status: "pending",
       })
       .select()
+      .single()
 
-    if (error) {
-      logError("API:POST /api/messages", error)
-      throw error
-    }
+    if (createError) throw createError
 
-    logInfo("API:POST /api/messages", "Message created successfully")
+    logger.info("Message created successfully", { messageId: message.id })
 
-    return NextResponse.json(data, { status: 201 })
+    return ResponseBuilder.created(message)
   } catch (error) {
-    logError("API:POST /api/messages", error)
-    
+    logger.error("Failed to create message", error)
     if (error instanceof ValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return ResponseBuilder.badRequest(error.message)
     }
-    
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
-    }
-
-    const errorMsg = error instanceof Error ? error.message : handleSupabaseError(error, "POST /api/messages")
-    return NextResponse.json(
-      { error: errorMsg || "Failed to create message" },
-      { status: 500 }
-    )
+    return ResponseBuilder.internalError()
   }
 }
 

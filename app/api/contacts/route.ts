@@ -1,29 +1,57 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
-import { logError, logInfo, logWarn, UnauthorizedError, ValidationError } from "@/lib/errors"
+import { NextRequest } from "next/server"
+import { createLogger } from "@/lib/logger"
+import { checkRateLimit } from "@/lib/ratelimit"
+import { validators, ValidationError } from "@/lib/validators"
+import { ResponseBuilder } from "@/lib/response/builder"
 
-export async function GET(request: Request) {
+const logger = createLogger("API:Contacts")
+
+export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for") || "unknown"
+    if (!checkRateLimit(`api:${ip}`, 100, 60000)) {
+      return ResponseBuilder.rateLimitExceeded()
+    }
+
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")
-    const page = parseInt(searchParams.get("page") || "1")
-    const limit = parseInt(searchParams.get("limit") || "20")
-    
-    logInfo("API:GET /api/contacts", "Fetching contacts")
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "20")))
+
+    logger.info("Fetching contacts", { page, limit, search: !!search })
 
     const supabase = await createSupabaseServerClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      logWarn("API:GET /api/contacts", "Unauthorized access")
-      throw new UnauthorizedError()
+      logger.warn("Unauthorized access")
+      return ResponseBuilder.unauthorized()
+    }
+
+    // Get user's workspace
+    const { data: workspace, error: wsError } = await supabase
+      .from("workspaces")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+
+    if (wsError || !workspace) {
+      logger.warn("Workspace not found", { userId: user.id })
+      return ResponseBuilder.notFound("Workspace not found")
     }
 
     // Build query with search
     let query = supabase
       .from("contacts")
-      .select("id, wa_id, name, profile_picture_url, status, created_at, last_message_at, whatsapp_number_id")
-      .eq("project_id", user.id)
+      .select("id, wa_id, name, profile_picture_url, status, created_at, last_message_at", {
+        count: "exact",
+      })
+      .eq("workspace_id", workspace.id)
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,wa_id.ilike.%${search}%`)
@@ -33,90 +61,84 @@ export async function GET(request: Request) {
     const from = (page - 1) * limit
     const to = from + limit - 1
 
-    const { data: contacts, error: contactsError } = await query
+    const { data: contacts, count: total, error: contactsError } = await query
       .order("last_message_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
       .range(from, to)
-
-    const { count: totalContacts } = await supabase
-      .from("contacts")
-      .select("*", { count: "exact", head: true })
-      .eq("project_id", user.id)
 
     if (contactsError) throw contactsError
 
-    logInfo("API:GET /api/contacts", `Retrieved ${contacts?.length || 0} contacts`)
+    logger.info("Retrieved contacts", { count: contacts?.length || 0, total })
 
-    return NextResponse.json({
-      contacts: contacts || [],
-      total: totalContacts || 0,
-      page,
-      limit,
-      totalPages: Math.ceil((totalContacts || 0) / limit),
-    })
+    return ResponseBuilder.paginated(contacts || [], total || 0, page, limit)
   } catch (error) {
-    logError("API:GET /api/contacts", error)
-
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    logger.error("Failed to fetch contacts", error)
+    if (error instanceof ValidationError) {
+      return ResponseBuilder.badRequest(error.message)
     }
-
-    return NextResponse.json(
-      { error: "Failed to fetch contacts" },
-      { status: 500 }
-    )
+    return ResponseBuilder.internalError()
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for") || "unknown"
+    if (!checkRateLimit(`api:${ip}:create`, 50, 60000)) {
+      return ResponseBuilder.rateLimitExceeded()
+    }
+
     const body = await request.json()
 
     // Validation
-    if (!body.name || !body.wa_id) {
-      throw new ValidationError("Name and WhatsApp ID are required")
-    }
+    validators.required(body.name, "name")
+    validators.required(body.wa_id, "wa_id")
+    validators.phoneNumber(body.wa_id)
+
+    logger.info("Creating contact", { name: body.name, wa_id: body.wa_id })
 
     const supabase = await createSupabaseServerClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      throw new UnauthorizedError()
+      return ResponseBuilder.unauthorized()
     }
 
-    logInfo("API:POST /api/contacts", `Creating contact for user ${user.id}`)
+    // Get user's workspace
+    const { data: workspace } = await supabase
+      .from("workspaces")
+      .select("id")
+      .eq("owner_id", user.id)
+      .maybeSingle()
 
-    const { data, error } = await supabase
+    if (!workspace) {
+      return ResponseBuilder.notFound("Workspace not found")
+    }
+
+    const { data: contact, error: createError } = await supabase
       .from("contacts")
       .insert({
-        project_id: user.id,
-        name: body.name,
-        wa_id: body.wa_id,
-        whatsapp_number_id: body.whatsapp_number_id,
+        workspace_id: workspace.id,
+        name: validators.string(body.name, "name", 1, 255),
+        wa_id: validators.phoneNumber(body.wa_id),
         status: body.status || "active",
       })
       .select()
+      .single()
 
-    if (error) throw error
+    if (createError) throw createError
 
-    logInfo("API:POST /api/contacts", "Contact created successfully")
+    logger.info("Contact created successfully", { contactId: contact.id })
 
-    return NextResponse.json(data, { status: 201 })
+    return ResponseBuilder.created(contact)
   } catch (error) {
-    logError("API:POST /api/contacts", error)
-
+    logger.error("Failed to create contact", error)
     if (error instanceof ValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return ResponseBuilder.badRequest(error.message)
     }
-
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
-    }
-
-    return NextResponse.json(
-      { error: "Failed to create contact" },
-      { status: 500 }
-    )
+    return ResponseBuilder.internalError()
   }
 }
 

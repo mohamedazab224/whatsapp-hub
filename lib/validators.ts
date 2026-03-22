@@ -63,3 +63,14 @@ export type Message = z.infer<typeof messageSchema>
 export type Template = z.infer<typeof templateSchema>
 export type Workflow = z.infer<typeof workflowSchema>
 export type Webhook = z.infer<typeof webhookSchema>
+
+/**
+ * Validators object for grouped access
+ */
+export const validators = {
+  contact: contactSchema,
+  message: messageSchema,
+  template: templateSchema,
+  workflow: workflowSchema,
+  webhook: webhookSchema,
+}

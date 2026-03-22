@@ -2,7 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { NextRequest } from "next/server"
 import { createLogger } from "@/lib/logger"
 import { checkRateLimit } from "@/lib/ratelimit"
-import { validators, ValidationError } from "@/lib/validators"
+import { validators, validateData } from "@/lib/validators"
+import { ValidationError } from "@/lib/errors"
 import { ResponseBuilder } from "@/lib/response/builder"
 
 const logger = createLogger("API:Contacts")

@@ -8,6 +8,18 @@ import { ResponseBuilder } from "@/lib/response/builder"
 
 const logger = createLogger("API:Contacts")
 
+// Get user's first project (workspace equivalent)
+async function getUserProject(supabase: any, userEmail: string) {
+  const { data: project, error } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("owner_email", userEmail)
+    .maybeSingle()
+
+  if (error) throw error
+  return project?.id || null
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Rate limiting
@@ -34,16 +46,12 @@ export async function GET(request: NextRequest) {
       return ResponseBuilder.unauthorized()
     }
 
-    // Get user's workspace
-    const { data: workspace, error: wsError } = await supabase
-      .from("workspaces")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle()
+    // Get user's project
+    const projectId = await getUserProject(supabase, user.email || "")
 
-    if (wsError || !workspace) {
-      logger.warn("Workspace not found", { userId: user.id })
-      return ResponseBuilder.notFound("Workspace not found")
+    if (!projectId) {
+      logger.warn("Project not found", { userId: user.id })
+      return ResponseBuilder.notFound("Project not found")
     }
 
     // Build query with search
@@ -52,7 +60,7 @@ export async function GET(request: NextRequest) {
       .select("id, wa_id, name, profile_picture_url, status, created_at, last_message_at", {
         count: "exact",
       })
-      .eq("workspace_id", workspace.id)
+      .eq("project_id", projectId)
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,wa_id.ilike.%${search}%`)
@@ -107,21 +115,17 @@ export async function POST(request: NextRequest) {
       return ResponseBuilder.unauthorized()
     }
 
-    // Get user's workspace
-    const { data: workspace } = await supabase
-      .from("workspaces")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle()
+    // Get user's project
+    const projectId = await getUserProject(supabase, user.email || "")
 
-    if (!workspace) {
-      return ResponseBuilder.notFound("Workspace not found")
+    if (!projectId) {
+      return ResponseBuilder.notFound("Project not found")
     }
 
     const { data: contact, error: createError } = await supabase
       .from("contacts")
       .insert({
-        workspace_id: workspace.id,
+        project_id: projectId,
         name: validators.string(body.name, "name", 1, 255),
         wa_id: validators.phoneNumber(body.wa_id),
         status: body.status || "active",

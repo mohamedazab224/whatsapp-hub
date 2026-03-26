@@ -8,19 +8,16 @@ import { ResponseBuilder } from "@/lib/response/builder"
 
 const logger = createLogger("API:Messages")
 
-async function ensureWorkspace(supabase: any, userId: string) {
-  const { data: workspace, error } = await supabase
-    .from("workspaces")
+// Get user's first project
+async function getUserProject(supabase: any, userEmail: string) {
+  const { data: project, error } = await supabase
+    .from("projects")
     .select("id")
-    .eq("owner_id", userId)
+    .eq("owner_email", userEmail)
     .maybeSingle()
 
   if (error) throw error
-  if (!workspace) {
-    throw new Error("Workspace not found")
-  }
-
-  return workspace.id
+  return project?.id || null
 }
 
 export async function GET(request: NextRequest) {
@@ -48,17 +45,21 @@ export async function GET(request: NextRequest) {
       return ResponseBuilder.unauthorized()
     }
 
-    const workspaceId = await ensureWorkspace(supabase, user.id)
+    const projectId = await getUserProject(supabase, user.email || "")
+
+    if (!projectId) {
+      logger.warn("Project not found", { userId: user.id })
+      return ResponseBuilder.notFound("Project not found")
+    }
 
     let query = supabase
       .from("messages")
       .select(
         `*, 
-        contacts(name, wa_id),
-        media:media_files(public_url, mime_type)`,
+        contacts(name, wa_id)`,
         { count: "exact" }
       )
-      .eq("workspace_id", workspaceId)
+      .eq("project_id", projectId)
 
     if (contactId) {
       query = query.eq("contact_id", contactId)
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
     const to = from + limit - 1
 
     const { data: messages, count: total, error: messagesError } = await query
-      .order("timestamp", { ascending: false })
+      .order("created_at", { ascending: false })
       .range(from, to)
 
     if (messagesError) throw messagesError
@@ -113,17 +114,22 @@ export async function POST(request: NextRequest) {
       return ResponseBuilder.unauthorized()
     }
 
-    const workspaceId = await ensureWorkspace(supabase, user.id)
+    const projectId = await getUserProject(supabase, user.email || "")
+
+    if (!projectId) {
+      logger.warn("Project not found", { userId: user.id })
+      return ResponseBuilder.notFound("Project not found")
+    }
 
     const { data: message, error: createError } = await supabase
       .from("messages")
       .insert({
-        workspace_id: workspaceId,
+        project_id: projectId,
         contact_id: validators.uuid(body.contact_id, "contact_id"),
         body: body.body,
-        type: body.type || "text",
+        message_type: body.type || "text",
         direction: "outbound",
-        status: "pending",
+        status: "sent",
       })
       .select()
       .single()

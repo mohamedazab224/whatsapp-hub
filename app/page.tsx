@@ -21,14 +21,29 @@ export default async function Dashboard() {
     redirect("/login")
   }
 
-  // Check if user has WhatsApp numbers set up
-  const { data: numbers, error: numbersError } = await supabase
-    .from("whatsapp_numbers")
+  // Get user's project first
+  const { data: project } = await supabase
+    .from("projects")
     .select("id")
-    .limit(1)
+    .eq("owner_email", user.email || "")
+    .maybeSingle()
+
+  // Check if user has WhatsApp numbers set up
+  let numbers: any[] = []
+  if (project) {
+    const { data: numbersData, error: numbersError } = await supabase
+      .from("whatsapp_numbers")
+      .select("id")
+      .eq("project_id", project.id)
+      .limit(1)
+
+    if (!numbersError && numbersData && numbersData.length > 0) {
+      numbers = numbersData
+    }
+  }
 
   // If no numbers configured, redirect to setup
-  if (!numbersError && (!numbers || numbers.length === 0)) {
+  if (numbers.length === 0) {
     console.log("[v0] No WhatsApp numbers found, redirecting to setup")
     redirect("/init")
   }

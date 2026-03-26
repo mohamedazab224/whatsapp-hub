@@ -6,6 +6,18 @@ import { createSeafileClient } from "@/lib/media/seafile-client"
 
 const logger = createLogger("API:SyncStatus")
 
+// Get user's first project
+async function getUserProject(supabase: any, userEmail: string) {
+  const { data: project, error } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("owner_email", userEmail)
+    .maybeSingle()
+
+  if (error) throw error
+  return project?.id || null
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient()
@@ -18,72 +30,89 @@ export async function GET(request: NextRequest) {
       return ResponseBuilder.unauthorized()
     }
 
-    // Get workspace
-    const { data: workspace, error: wsError } = await supabase
-      .from("workspaces")
-      .select("id")
-      .eq("owner_id", user.id)
-      .maybeSingle()
+    // Get project
+    const projectId = await getUserProject(supabase, user.email || "")
 
-    if (wsError || !workspace) {
-      return ResponseBuilder.notFound("Workspace not found")
+    if (!projectId) {
+      return ResponseBuilder.notFound("Project not found")
     }
 
-    // Get sync statistics
-    const { data: mediaFiles, error: mediaError } = await supabase
-      .from("media_files")
-      .select("id, status, created_at, file_size", { count: "exact" })
-      .eq("workspace_id", workspace.id)
-      .order("created_at", { ascending: false })
-      .limit(100)
+    // Get sync statistics - check if media_files table exists
+    try {
+      const { data: mediaFiles, error: mediaError } = await supabase
+        .from("media_files")
+        .select("id, status, created_at, file_size", { count: "exact" })
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+        .limit(100)
 
-    if (mediaError) throw mediaError
+      if (mediaError) throw mediaError
 
-    // Calculate stats
-    const totalFiles = mediaFiles?.length || 0
-    const successCount = mediaFiles?.filter((f: any) => f.status === "downloaded").length || 0
-    const failedCount = mediaFiles?.filter((f: any) => f.status === "failed").length || 0
-    const pendingCount = mediaFiles?.filter((f: any) => f.status === "pending").length || 0
-    const totalSize = (mediaFiles || []).reduce((sum: number, f: any) => sum + (f.file_size || 0), 0)
+      // Calculate stats
+      const totalFiles = mediaFiles?.length || 0
+      const successCount = mediaFiles?.filter((f: any) => f.status === "downloaded").length || 0
+      const failedCount = mediaFiles?.filter((f: any) => f.status === "failed").length || 0
+      const pendingCount = mediaFiles?.filter((f: any) => f.status === "pending").length || 0
+      const totalSize = (mediaFiles || []).reduce((sum: number, f: any) => sum + (f.file_size || 0), 0)
 
-    // Test Seafile connection
-    const seafileClient = createSeafileClient()
-    let seafileStatus = { connected: false, message: "" }
+      // Test Seafile connection
+      const seafileClient = createSeafileClient()
+      let seafileStatus = { connected: false, message: "" }
 
-    if (seafileClient) {
-      const connectionTest = await seafileClient.testConnection()
-      seafileStatus = {
-        connected: connectionTest.success,
-        message: connectionTest.message,
+      if (seafileClient) {
+        const connectionTest = await seafileClient.testConnection()
+        seafileStatus = {
+          connected: connectionTest.success,
+          message: connectionTest.message,
+        }
+      } else {
+        seafileStatus = {
+          connected: false,
+          message: "Seafile not configured",
+        }
       }
-    } else {
-      seafileStatus = {
-        connected: false,
-        message: "Seafile not configured",
-      }
-    }
 
-    logger.info("Sync status retrieved", {
-      totalFiles,
-      successCount,
-      failedCount,
-      pendingCount,
-      seafileConnected: seafileStatus.connected,
-    })
-
-    return ResponseBuilder.success({
-      stats: {
+      logger.info("Sync status retrieved", {
         totalFiles,
         successCount,
         failedCount,
         pendingCount,
-        successRate: totalFiles > 0 ? ((successCount / totalFiles) * 100).toFixed(2) : "0",
-        totalSize,
-        totalSizeMB: (totalSize / 1024 / 1024).toFixed(2),
-      },
-      seafile: seafileStatus,
-      recentFiles: mediaFiles?.slice(0, 10) || [],
-    })
+        seafileConnected: seafileStatus.connected,
+      })
+
+      return ResponseBuilder.success({
+        stats: {
+          totalFiles,
+          successCount,
+          failedCount,
+          pendingCount,
+          successRate: totalFiles > 0 ? ((successCount / totalFiles) * 100).toFixed(2) : "0",
+          totalSize,
+          totalSizeMB: (totalSize / 1024 / 1024).toFixed(2),
+        },
+        seafile: seafileStatus,
+        recentFiles: mediaFiles?.slice(0, 10) || [],
+      })
+    } catch (error: any) {
+      // If media_files table doesn't exist, return empty stats
+      if (error?.code === 'PGRST205' || error?.message?.includes('media_files')) {
+        logger.info("Media files table not found - returning empty stats")
+        return ResponseBuilder.success({
+          stats: {
+            totalFiles: 0,
+            successCount: 0,
+            failedCount: 0,
+            pendingCount: 0,
+            successRate: "0",
+            totalSize: 0,
+            totalSizeMB: "0",
+          },
+          seafile: { connected: false, message: "Media storage not configured" },
+          recentFiles: [],
+        })
+      }
+      throw error
+    }
   } catch (error) {
     logger.error("Failed to get sync status", error)
     return ResponseBuilder.internalError()

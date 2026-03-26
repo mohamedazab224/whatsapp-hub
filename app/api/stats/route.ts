@@ -14,11 +14,25 @@ export async function GET() {
       throw new UnauthorizedError()
     }
 
+    // Get user's project by email
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("owner_email", user.email || "")
+      .maybeSingle()
+
+    if (projectError || !project) {
+      logWarn("API:GET /api/stats", "Project not found")
+      return NextResponse.json({ 
+        stats: { contacts: 0, messages: 0, numbers: 0 } 
+      })
+    }
+
     // Get dashboard stats
     const [contactsResult, messagesResult, numbersResult] = await Promise.all([
-      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("project_id", user.id),
-      supabase.from("messages").select("*", { count: "exact", head: true }).eq("project_id", user.id),
-      supabase.from("whatsapp_numbers").select("*", { count: "exact", head: true }).eq("project_id", user.id),
+      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("project_id", project.id),
+      supabase.from("messages").select("*", { count: "exact", head: true }).eq("project_id", project.id),
+      supabase.from("whatsapp_numbers").select("*", { count: "exact", head: true }).eq("project_id", project.id),
     ])
 
     const stats = {

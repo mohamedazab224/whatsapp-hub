@@ -12,7 +12,14 @@
     "rebuild": "npm run clean && npm install && npm run build",
     "setup-demo": "node scripts/setup-demo-user.js",
     "send-test": "node scripts/send-test-message.js",
-    "import-meta": "node scripts/import-meta-data.js"
+    "import-meta": "node scripts/import-meta-data.js",
+    "production-check": "bash scripts/production-check.sh",
+    "production-build": "bash scripts/production-build.sh",
+    "deploy:prod": "vercel deploy --prod",
+    "deploy:check": "npm run production-check && npm run build",
+    "deploy:dry-run": "npm run build && npm start",
+    "logs": "vercel logs production --tail",
+    "health": "curl https://yourdomain.com/api/health || curl http://localhost:3000/api/health"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -28,11 +28,11 @@ export async function Sidebar() {
       return <SidebarClient projects={[]} numbers={[]} />
     }
 
-    // Get user's project
+    // Get user's project by email
     const { data: projectData, error: projectError } = await supabase
       .from("projects")
       .select("id, name")
-      .eq("owner_id", user.id)
+      .eq("owner_email", user.email || "")
       .maybeSingle()
 
     if (projectError) {

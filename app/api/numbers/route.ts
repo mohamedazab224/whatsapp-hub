@@ -19,7 +19,7 @@ export async function GET() {
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .select("id")
-      .eq("owner_id", user.id)
+      .eq("owner_email", user.email || "")
       .maybeSingle()
 
     if (projectError || !project) {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .select("id")
-      .eq("owner_id", user.id)
+      .eq("owner_email", user.email || "")
       .maybeSingle()
 
     if (projectError || !project) {

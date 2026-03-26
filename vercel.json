@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/cron/sync-whatsapp",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-logs",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/backup-database",
+      "schedule": "0 3 * * 0"
+    }
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 60,
+      "memory": 3008
+    }
+  },
+  "env": {
+    "PRODUCTION": {
+      "NODE_ENV": "production"
+    }
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
+}

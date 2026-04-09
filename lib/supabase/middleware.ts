@@ -9,11 +9,9 @@ export const updateSupabaseSession = async (request: NextRequest) => {
   const NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
   const NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // If env vars are not set, return empty user (development mode)
+  // If env vars are not set, return empty user (development mode or public routes)
   if (!NEXT_PUBLIC_SUPABASE_URL || !NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.warn('[middleware] Supabase credentials not found in process.env')
-    console.warn('[middleware] URL present:', !!NEXT_PUBLIC_SUPABASE_URL)
-    console.warn('[middleware] Key present:', !!NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    // Silently handle missing credentials - some routes don't need auth
     return { response, user: null }
   }
 

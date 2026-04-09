@@ -22,7 +22,8 @@ export async function GET() {
       .from("projects")
       .select("id, name")
       .eq("owner_id", user.id)
-      .maybeSingle()
+      .limit(1)
+      .single()
 
     if (projectError) {
       logError("API:GET /api/project/check", projectError)

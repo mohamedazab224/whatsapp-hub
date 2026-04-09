@@ -25,8 +25,206 @@ function verifyWebhookSignature(rawBody: string, signatureHeader: string | null,
 }
 
 async function processWebhookEvent({ requestId, body }: { requestId: string; body: any }) {
-  // Placeholder implementation
-  logger.info("Processing webhook event", { requestId, eventType: body.entry?.[0]?.changes?.[0]?.field })
+  if (!body.entry || !Array.isArray(body.entry)) {
+    logger.warn("Invalid webhook body structure", { requestId })
+    return
+  }
+
+  for (const entry of body.entry) {
+    if (!entry.changes || !Array.isArray(entry.changes)) continue
+
+    for (const change of entry.changes) {
+      const field = change.field
+      const value = change.value
+
+      if (field === "messages") {
+        await handleIncomingMessage({ requestId, entry: entry.id, value })
+      } else if (field === "message_status") {
+        await handleMessageStatus({ requestId, entry: entry.id, value })
+      } else if (field === "message_template_status_update") {
+        await handleTemplateStatusUpdate({ requestId, entry: entry.id, value })
+      }
+    }
+  }
+}
+
+async function handleIncomingMessage({ requestId, entry: wabaId, value }: any) {
+  try {
+    if (!value.messages || !Array.isArray(value.messages)) return
+
+    for (const msg of value.messages) {
+      const phoneNumberId = value.metadata?.phone_number_id
+      const contactWaId = msg.from
+      const timestamp = msg.timestamp
+
+      let messageBody = ""
+      let messageType = "unknown"
+
+      if (msg.type === "text") {
+        messageBody = msg.text?.body || ""
+        messageType = "text"
+      } else if (msg.type === "interactive") {
+        messageBody = msg.interactive?.button_reply?.title || msg.interactive?.list_reply?.title || ""
+        messageType = "interactive"
+      } else if (msg.type === "document" || msg.type === "image" || msg.type === "audio" || msg.type === "video") {
+        messageType = msg.type
+        const mediaId = msg[msg.type]?.id
+        messageBody = mediaId || ""
+      }
+
+      // Store message in database
+      await storeIncomingMessage({
+        requestId,
+        wabaId,
+        phoneNumberId,
+        contactWaId,
+        messageId: msg.id,
+        messageType,
+        messageBody,
+        timestamp: parseInt(timestamp),
+      })
+    }
+  } catch (error) {
+    logger.error("Error handling incoming message", { requestId, error })
+  }
+}
+
+async function handleMessageStatus({ requestId, entry: wabaId, value }: any) {
+  try {
+    if (!value.statuses || !Array.isArray(value.statuses)) return
+
+    for (const status of value.statuses) {
+      const phoneNumberId = value.metadata?.phone_number_id
+      const messageId = status.id
+      const statusValue = status.status // delivered, read, failed, sent
+      const timestamp = status.timestamp
+
+      await updateMessageStatus({
+        requestId,
+        messageId,
+        status: statusValue,
+        timestamp: parseInt(timestamp),
+      })
+    }
+  } catch (error) {
+    logger.error("Error handling message status", { requestId, error })
+  }
+}
+
+async function handleTemplateStatusUpdate({ requestId, entry: wabaId, value }: any) {
+  try {
+    logger.info("Template status update", {
+      requestId,
+      templateName: value.message_template?.name,
+      status: value.message_template?.status,
+      reason: value.message_template?.rejection_reason,
+    })
+  } catch (error) {
+    logger.error("Error handling template status", { requestId, error })
+  }
+}
+
+async function storeIncomingMessage({
+  requestId,
+  wabaId,
+  phoneNumberId,
+  contactWaId,
+  messageId,
+  messageType,
+  messageBody,
+  timestamp,
+}: any) {
+  try {
+    const { createSupabaseServerClient } = await import("@/lib/supabase/server")
+    const supabase = await createSupabaseServerClient()
+
+    // First, ensure contact exists
+    const { data: contact, error: contactError } = await supabase
+      .from("contacts")
+      .select("id")
+      .eq("project_id", wabaId)
+      .eq("wa_id", contactWaId)
+      .maybeSingle()
+
+    let contactId = contact?.id
+
+    if (!contact) {
+      const { data: newContact, error: createError } = await supabase
+        .from("contacts")
+        .insert({
+          project_id: wabaId,
+          wa_id: contactWaId,
+          status: "active",
+        })
+        .select("id")
+        .single()
+
+      if (createError) {
+        logger.error("Failed to create contact", { requestId, error: createError })
+        return
+      }
+      contactId = newContact?.id
+    }
+
+    // Get whatsapp_number_id
+    const { data: whatsappNumber, error: numberError } = await supabase
+      .from("whatsapp_numbers")
+      .select("id")
+      .eq("phone_number_id", phoneNumberId)
+      .maybeSingle()
+
+    if (!whatsappNumber) {
+      logger.warn("WhatsApp number not found", { requestId, phoneNumberId })
+      return
+    }
+
+    // Store message
+    const { error } = await supabase.from("messages").insert({
+      project_id: wabaId,
+      whatsapp_message_id: messageId,
+      contact_id: contactId,
+      whatsapp_number_id: whatsappNumber.id,
+      message_type: messageType,
+      body: messageBody,
+      direction: "inbound",
+      status: "sent",
+      created_at: new Date(timestamp * 1000).toISOString(),
+    })
+
+    if (error) {
+      logger.error("Failed to store message", { requestId, error })
+    } else {
+      logger.info("Message stored", { requestId, messageId })
+    }
+  } catch (error) {
+    logger.error("Error storing message", { requestId, error })
+  }
+}
+
+async function updateMessageStatus({ requestId, messageId, status, timestamp }: any) {
+  try {
+    const { createSupabaseServerClient } = await import("@/lib/supabase/server")
+    const supabase = await createSupabaseServerClient()
+
+    // Map Meta status to our status
+    const mappedStatus = status === "delivered" ? "delivered" : status === "read" ? "read" : "sent"
+
+    const { error } = await supabase
+      .from("messages")
+      .update({
+        status: mappedStatus,
+        updated_at: new Date(timestamp * 1000).toISOString(),
+      })
+      .eq("whatsapp_message_id", messageId)
+
+    if (error) {
+      logger.error("Failed to update message status", { requestId, error })
+    } else {
+      logger.info("Message status updated", { requestId, messageId, status: mappedStatus })
+    }
+  } catch (error) {
+    logger.error("Error updating message status", { requestId, error })
+  }
 }
 
 export async function GET(request: Request) {

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createLogger } from "@/lib/logger"
+import crypto from "crypto"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false },
-})
+const logger = createLogger("API:SendMessage")
 
 interface SendMessageRequest {
   phoneNumberId: string
@@ -17,23 +14,29 @@ interface SendMessageRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID()
+  
   try {
     const body: SendMessageRequest = await request.json()
-
     const { phoneNumberId, recipientPhone, message, projectId, contactId } = body
 
     if (!phoneNumberId || !recipientPhone || !message || !projectId) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      )
+      logger.warn("Missing required fields", { requestId, fields: { phoneNumberId, recipientPhone, message, projectId } })
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN
     const apiVersion = process.env.WHATSAPP_API_VERSION || "v24.0"
 
+    if (!accessToken) {
+      logger.error("WhatsApp access token not configured", { requestId })
+      return NextResponse.json({ error: "WhatsApp not configured" }, { status: 500 })
+    }
+
+    logger.info("Sending message via WhatsApp API", { requestId, phoneNumberId, recipientPhone })
+
     // إرسال الرسالة عبر WhatsApp API
-    const response = await fetch(
+    const metaResponse = await fetch(
       `https://graph.instagram.com/${apiVersion}/${phoneNumberId}/messages`,
       {
         method: "POST",
@@ -54,48 +57,55 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    const responseData = await response.json()
+    const responseData = await metaResponse.json()
 
-    if (response.ok && responseData.messages) {
+    if (metaResponse.ok && responseData.messages?.[0]?.id) {
       const messageId = responseData.messages[0].id
+      const supabase = await createSupabaseServerClient()
+
+      // Get whatsapp_number_id
+      const { data: whatsappNumber } = await supabase
+        .from("whatsapp_numbers")
+        .select("id")
+        .eq("phone_number_id", phoneNumberId)
+        .maybeSingle()
+
+      if (!whatsappNumber) {
+        logger.warn("WhatsApp number not found", { requestId, phoneNumberId })
+        return NextResponse.json({ error: "WhatsApp number not configured" }, { status: 500 })
+      }
 
       // حفظ الرسالة في قاعدة البيانات
       const { error: saveError } = await supabase
         .from("messages")
         .insert({
-          wamid: messageId,
-          contact_id: contactId,
           project_id: projectId,
-          whatsapp_number_id: phoneNumberId,
-          to_phone_id: recipientPhone,
+          whatsapp_message_id: messageId,
+          contact_id: contactId,
+          whatsapp_number_id: whatsappNumber.id,
+          body: message,
+          message_type: "text",
           direction: "outbound",
           status: "sent",
-          type: "text",
-          body: message,
-          timestamp: new Date().toISOString(),
           created_at: new Date().toISOString(),
         })
 
       if (saveError) {
-        console.error("Error saving outbound message:", saveError)
+        logger.warn("Failed to save sent message to database", { requestId, messageId, error: saveError })
+      } else {
+        logger.info("Message sent and stored successfully", { requestId, messageId })
       }
 
-      return NextResponse.json({
-        success: true,
-        messageId,
-      })
+      return NextResponse.json({ success: true, messageId })
     } else {
-      console.error("WhatsApp API error:", responseData)
+      logger.error("WhatsApp API error", { requestId, error: responseData.error || responseData })
       return NextResponse.json(
         { error: responseData.error?.message || "Failed to send message" },
-        { status: response.status }
+        { status: metaResponse.status }
       )
     }
   } catch (error) {
-    console.error("Error sending message:", error)
-    return NextResponse.json(
-      { error: "Failed to send message" },
-      { status: 500 }
-    )
+    logger.error("Error sending message", { requestId, error })
+    return NextResponse.json({ error: "Failed to send message" }, { status: 500 })
   }
 }

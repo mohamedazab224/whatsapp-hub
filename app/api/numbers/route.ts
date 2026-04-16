@@ -98,12 +98,13 @@ export async function POST(request: Request) {
       throw projectError || new Error("No project found for user")
     }
 
+    const projectDataPost = project as unknown as { id: string }
     logInfo("API:POST /api/numbers", `Adding number for user ${user.id}`)
 
     const { data, error } = await supabase
       .from("whatsapp_numbers")
       .insert({
-        project_id: project.id,
+        project_id: projectDataPost.id,
         phone_number: body.phone_number,
         name: body.name,
         status: "pending",

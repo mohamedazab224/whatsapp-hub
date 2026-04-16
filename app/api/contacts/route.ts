@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { NextRequest } from "next/server"
 import { createLogger } from "@/lib/logger"
 import { checkRateLimit } from "@/lib/ratelimit"
-import { validators, validateData } from "@/lib/validators"
+import { contactSchema, validateData } from "@/lib/validators"
 import { ValidationError } from "@/lib/errors"
 import { ResponseBuilder } from "@/lib/response/builder"
 
@@ -99,11 +99,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validation
-    validators.required(body.name, "name")
-    validators.required(body.wa_id, "wa_id")
-    validators.phoneNumber(body.wa_id)
+    const validatedData = validateData(body, contactSchema)
 
-    logger.info("Creating contact", { name: body.name, wa_id: body.wa_id })
+    logger.info("Creating contact", { name: validatedData.name, wa_id: validatedData.wa_id })
 
     const supabase = await createSupabaseServerClient()
     const {
@@ -126,16 +124,18 @@ export async function POST(request: NextRequest) {
       .from("contacts")
       .insert({
         project_id: projectId,
-        name: validators.string(body.name, "name", 1, 255),
-        wa_id: validators.phoneNumber(body.wa_id),
-        status: body.status || "active",
+        name: validatedData.name,
+        wa_id: validatedData.wa_id,
+        status: validatedData.status,
+        whatsapp_number_id: validatedData.whatsapp_number_id,
       })
       .select()
       .single()
 
     if (createError) throw createError
 
-    logger.info("Contact created successfully", { contactId: contact.id })
+    const contactData = contact as unknown as { id: string }
+    logger.info("Contact created successfully", { contactId: contactData.id })
 
     return ResponseBuilder.created(contact)
   } catch (error) {

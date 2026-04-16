@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     if (error || !data) throw error || new Error("Failed to create broadcast")
 
-    const broadcastData = data as { id: string }
+    const broadcastData = data as unknown as { id: string }
 
     // إضافة المستلمين
     if (body.recipients && body.recipients.length > 0) {

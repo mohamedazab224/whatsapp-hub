@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
     
-    if (!projectUser || !['admin', 'editor'].includes(projectUser.role)) {
+    const projectUserData = projectUser as unknown as { role: string } | null;
+    if (!projectUserData || !['admin', 'editor'].includes(projectUserData.role)) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }

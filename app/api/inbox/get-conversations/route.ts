@@ -26,6 +26,7 @@ export async function GET(request: Request) {
       )
     }
 
+    const projectData = project as unknown as { id: string }
     // Get conversations with latest message
     const { data: conversations, error } = await supabase
       .from('conversations')
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
         messages(body, created_at)
       `
       )
-      .eq('project_id', project.id)
+      .eq('project_id', projectData.id)
       .order('last_message_at', { ascending: false })
       .limit(50)
 

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Test 1: Connection
     const connectionTest = await seafileClient.testConnection()
     if (!connectionTest.success) {
-      logger.error("Seafile connection failed", connectionTest.message)
+      logger.error("Seafile connection failed", { message: connectionTest.message })
       return ResponseBuilder.error(connectionTest.message, 503, "SEAFILE_UNAVAILABLE")
     }
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const ensureDirResult = await seafileClient.ensureDirectory(todayPath)
     if (!ensureDirResult.success) {
-      logger.error("Seafile directory check failed", ensureDirResult.message)
+      logger.error("Seafile directory check failed", { message: ensureDirResult.message })
       return ResponseBuilder.error(ensureDirResult.message, 503, "SEAFILE_DIR_ERROR")
     }
 

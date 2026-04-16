@@ -92,15 +92,16 @@ export async function POST(request: NextRequest) {
     const result = await sendRes.json()
 
     // Store message in database
-    const project = await supabase
+    const { data: projectData } = await supabase
       .from('projects')
       .select('id')
       .eq('owner_id', user.id)
       .maybeSingle()
 
-    if (project.data) {
+    if (projectData) {
+      const project = projectData as unknown as { id: string }
       await supabase.from('messages').insert({
-        project_id: project.data.id,
+        project_id: project.id,
         phone_number_id,
         to_phone_id: recipient,
         direction: 'outbound',

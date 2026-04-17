@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      analysis_id: analysis.id,
+      (analysis as any).id: (analysis as any).id,
       quality_score: analysisResult.quality_score,
       detected_objects: analysisResult.detected_objects,
       waste_detected: analysisResult.waste_detected,

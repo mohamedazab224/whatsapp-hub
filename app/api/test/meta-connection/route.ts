@@ -36,11 +36,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No project found' }, { status: 404 })
     }
 
+    const projectData = project as unknown as { id: string }
     // Get all WhatsApp numbers for the project
     const { data: numbers } = await supabase
       .from('whatsapp_numbers')
       .select('*')
-      .eq('project_id', project.id)
+      .eq('project_id', projectData.id)
 
     const results = []
 

@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
     }
 
+    const mediaData = media as unknown as { storage_path: string; mime_type: string }
     // تحديث حالة المعالجة
     await supabase
       .from("vae_media")
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // محاكاة تحليل AI
     // في الواقع، سيتم استدعاء خدمة AI حقيقية مثل Google Vision API أو Claude Vision
-    const analysisResult = await performAIAnalysis(media.storage_path, media.mime_type)
+    const analysisResult = await performAIAnalysis(mediaData.storage_path, mediaData.mime_type)
 
     // حفظ نتائج التحليل
     const { data: analysis, error: analysisError } = await supabase

@@ -43,9 +43,10 @@ export async function GET(request: Request) {
       .select('*')
       .eq('project_id', projectData.id)
 
+    const numbersData = (numbers || []) as unknown as Array<{ id: string; phone_number_id: string; display_phone_number: string; verified_name: string }>
     const results = []
 
-    for (const number of numbers || []) {
+    for (const number of numbersData) {
       try {
         const testRes = await fetch(
           `https://graph.instagram.com/v24.0/${number.phone_number_id}`,

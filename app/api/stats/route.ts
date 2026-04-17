@@ -28,11 +28,12 @@ export async function GET() {
       })
     }
 
+    const projectData = project as unknown as { id: string }
     // Get dashboard stats
     const [contactsResult, messagesResult, numbersResult] = await Promise.all([
-      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("project_id", project.id),
-      supabase.from("messages").select("*", { count: "exact", head: true }).eq("project_id", project.id),
-      supabase.from("whatsapp_numbers").select("*", { count: "exact", head: true }).eq("project_id", project.id),
+      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("project_id", projectData.id),
+      supabase.from("messages").select("*", { count: "exact", head: true }).eq("project_id", projectData.id),
+      supabase.from("whatsapp_numbers").select("*", { count: "exact", head: true }).eq("project_id", projectData.id),
     ])
 
     const stats = {

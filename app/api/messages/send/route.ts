@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "WhatsApp number not configured" }, { status: 500 })
       }
 
+      const whatsappNumberData = whatsappNumber as unknown as { id: string }
       // حفظ الرسالة في قاعدة البيانات
       const { error: saveError } = await supabase
         .from("messages")
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
           project_id: projectId,
           whatsapp_message_id: messageId,
           contact_id: contactId,
-          whatsapp_number_id: whatsappNumber.id,
+          whatsapp_number_id: whatsappNumberData.id,
           body: message,
           message_type: "text",
           direction: "outbound",

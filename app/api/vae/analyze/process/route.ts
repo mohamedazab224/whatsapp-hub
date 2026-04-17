@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
     }
 
+    const mediaData = media as unknown as { storage_path: string; mime_type: string; site_id: string }
     // تحديث حالة المعالجة
     await supabase
       .from("vae_media")
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // محاكاة تحليل AI
     // في الواقع، سيتم استدعاء خدمة AI حقيقية مثل Google Vision API أو Claude Vision
-    const analysisResult = await performAIAnalysis(media.storage_path, media.mime_type)
+    const analysisResult = await performAIAnalysis(mediaData.storage_path, mediaData.mime_type)
 
     // حفظ نتائج التحليل
     const { data: analysis, error: analysisError } = await supabase
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     // تسجيل الحدث
     await supabase.from("vae_event_logs").insert({
-      site_id: media.site_id,
+      site_id: mediaData.site_id,
       event_type: "ai_analysis_complete",
       event_data: {
         media_id: media_id,
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      analysis_id: analysis.id,
+      (analysis as any).id: (analysis as any).id,
       quality_score: analysisResult.quality_score,
       detected_objects: analysisResult.detected_objects,
       waste_detected: analysisResult.waste_detected,

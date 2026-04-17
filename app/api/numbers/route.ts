@@ -27,15 +27,17 @@ export async function GET() {
       throw projectError || new Error("No project found for user")
     }
 
+    const projectData = project as unknown as { id: string }
+
     const { data: numbers, error: numbersError } = await supabase
       .from("whatsapp_numbers")
       .select("id, phone_number, name, status, type")
-      .eq("project_id", project.id)
+      .eq("project_id", projectData.id)
 
     const { count: totalNumbers, error: countError } = await supabase
       .from("whatsapp_numbers")
       .select("*", { count: "exact", head: true })
-      .eq("project_id", project.id)
+      .eq("project_id", projectData.id)
 
     if (numbersError) {
       logError("API:GET /api/numbers", numbersError)
@@ -96,12 +98,13 @@ export async function POST(request: Request) {
       throw projectError || new Error("No project found for user")
     }
 
+    const projectDataPost = project as unknown as { id: string }
     logInfo("API:POST /api/numbers", `Adding number for user ${user.id}`)
 
     const { data, error } = await supabase
       .from("whatsapp_numbers")
       .insert({
-        project_id: project.id,
+        project_id: projectDataPost.id,
         phone_number: body.phone_number,
         name: body.name,
         status: "pending",

@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { NextRequest } from "next/server"
 import { createLogger } from "@/lib/logger"
 import { checkRateLimit } from "@/lib/ratelimit"
-import { validators, validateData } from "@/lib/validators"
+import { messageSchema, validateData } from "@/lib/validators"
 import { ValidationError } from "@/lib/errors"
 import { ResponseBuilder } from "@/lib/response/builder"
 
@@ -98,11 +98,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validation
-    validators.required(body.contact_id, "contact_id")
-    validators.required(body.body, "body")
-    validators.string(body.body, "body", 1, 4096)
+    const validatedData = validateData(body, messageSchema)
 
-    logger.info("Creating message", { contactId: body.contact_id })
+    logger.info("Creating message", { contactId: validatedData.contact_id })
 
     const supabase = await createSupabaseServerClient()
     const {
@@ -125,9 +123,9 @@ export async function POST(request: NextRequest) {
       .from("messages")
       .insert({
         project_id: projectId,
-        contact_id: validators.uuid(body.contact_id, "contact_id"),
-        body: body.body,
-        message_type: body.type || "text",
+        contact_id: validatedData.contact_id,
+        body: validatedData.body,
+        message_type: validatedData.type,
         direction: "outbound",
         status: "sent",
       })
@@ -136,7 +134,8 @@ export async function POST(request: NextRequest) {
 
     if (createError) throw createError
 
-    logger.info("Message created successfully", { messageId: message.id })
+    const messageData = message as unknown as { id: string }
+    logger.info("Message created successfully", { messageId: messageData.id })
 
     return ResponseBuilder.created(message)
   } catch (error) {

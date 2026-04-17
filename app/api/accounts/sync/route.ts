@@ -46,8 +46,6 @@ export async function POST(request: NextRequest) {
             display_phone_number: phone.display_phone_number,
             verified_name: phone.verified_name,
             quality_rating: phone.quality_rating,
-            status: phone.status,
-            meta_business_account_id: waba.id,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "phone_number_id" }
@@ -108,19 +106,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch numbers" }, { status: 500 })
     }
 
-    // Group by WABA/business account
+    // Return phone numbers grouped by project
     const accountsMap = new Map<string, any>()
     const numbers_array = numbers || []
 
-    for (const number of numbers_array) {
-      const wabaId = number.meta_business_account_id || "default"
-      if (!accountsMap.has(wabaId)) {
-        accountsMap.set(wabaId, {
-          id: wabaId,
-          phones: [],
-        })
-      }
-      accountsMap.get(wabaId)?.phones.push(number)
+    // Group all numbers for the project under a default account
+    if (numbers_array.length > 0) {
+      accountsMap.set("default", {
+        id: "default",
+        phones: numbers_array,
+      })
     }
 
     logger.info("Fetched accounts and numbers", {

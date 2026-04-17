@@ -30,12 +30,13 @@ export async function GET() {
       return NextResponse.json({ hasProject: false, error: projectError.message }, { status: 500 })
     }
 
-    logInfo("API:GET /api/project/check", project ? "Project found" : "No project found")
+    const projectData = project as unknown as { id: string; name: string } | null
+    logInfo("API:GET /api/project/check", projectData ? "Project found" : "No project found")
 
     return NextResponse.json({
-      hasProject: !!project,
-      projectId: project?.id,
-      projectName: project?.name,
+      hasProject: !!projectData,
+      projectId: projectData?.id,
+      projectName: projectData?.name,
       authenticated: true,
     })
   } catch (error) {

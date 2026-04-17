@@ -37,9 +37,10 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     let projectId: string
+    const existingProjectData = existingProject as unknown as { id: string } | null
 
-    if (existingProject) {
-      projectId = existingProject.id
+    if (existingProjectData) {
+      projectId = existingProjectData.id
       logInfo("API:POST /api/init/setup", `Using existing project: ${projectId}`)
     } else {
       const { data: newProject, error: projectError } = await supabase
@@ -57,7 +58,8 @@ export async function POST(request: NextRequest) {
         throw projectError || new Error("Failed to create project")
       }
 
-      projectId = newProject.id
+      const newProjectData = newProject as unknown as { id: string }
+      projectId = newProjectData.id
       logInfo("API:POST /api/init/setup", `Created new project: ${projectId}`)
     }
 

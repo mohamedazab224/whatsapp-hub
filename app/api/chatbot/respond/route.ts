@@ -113,12 +113,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Store both incoming and outgoing messages
+      const whatsappNumberData = whatsappNumber as unknown as { id: string }
       const { error: insertError } = await supabase.from("messages").insert([
         {
           project_id: projectId,
           whatsapp_message_id: botMessageId,
           contact_id: contactId,
-          whatsapp_number_id: whatsappNumber.id,
+          whatsapp_number_id: whatsappNumberData.id,
           body: botResponse,
           message_type: "text",
           direction: "outbound",

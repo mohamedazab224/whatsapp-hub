@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
     }
 
-    const mediaData = media as unknown as { storage_path: string; mime_type: string }
+    const mediaData = media as unknown as { storage_path: string; mime_type: string; site_id: string }
     // تحديث حالة المعالجة
     await supabase
       .from("vae_media")
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     // تسجيل الحدث
     await supabase.from("vae_event_logs").insert({
-      site_id: media.site_id,
+      site_id: mediaData.site_id,
       event_type: "ai_analysis_complete",
       event_data: {
         media_id: media_id,
